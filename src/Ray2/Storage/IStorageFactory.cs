@@ -6,7 +6,7 @@ namespace Ray2.Storage
 {
     public interface IStorageFactory
     {
-        ISnapshotStorage GetSnapshotStorage(string name);
+        IStatusStorage GetStatusStorage(string name);
         IEventStorage GetEventStorage(string name);
     }
 }

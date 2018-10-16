@@ -9,7 +9,7 @@ using Orleans;
 using Orleans.Runtime;
 using Ray2.Configuration;
 using Ray2.EventProcess;
-using Ray2.EventSources;
+using Ray2.EventSourcing;
 using Ray2.Exceptions;
 using Ray2.MQ;
 
@@ -20,7 +20,7 @@ namespace Ray2
         public IServiceCollection Services { get; }
         public IConfiguration Configuration { get; }
 
-        private readonly List<MQSubscribeConfig> subscribeConfigs = new List<MQSubscribeConfig>();
+        private readonly List<SubscribeOptions> subscribeConfigs = new List<SubscribeOptions>();
         public RayBuilder(IServiceCollection services, IConfiguration configuration)
         {
             this.Configuration = configuration;
@@ -44,7 +44,7 @@ namespace Ray2
         }
         private void LoadEventSourcingConfig(Assembly assembly)
         {
-            var estype = typeof(IEventSourcing);
+            var estype = typeof(IRay);
             var allType = assembly.GetExportedTypes().Where(t => estype.IsAssignableFrom(t) && t.IsAbstract == false && t.IsClass == true);
             foreach (var type in allType)
             {
@@ -58,7 +58,7 @@ namespace Ray2
         }
         private void LoadEventSourcingConfig(Type type, EventSourcingAttribute attr)
         {
-            EventSourcesConfig config = new EventSourcesConfig(attr);
+            EventSourcingOptions config = new EventSourcingOptions(attr);
             config.Verify();  //verify event process config
 
             if (RayConfig.EventProcessors.ContainsKey(config.EventSourceName))
@@ -88,7 +88,7 @@ namespace Ray2
         }
         private void LoadEventProcessConfig(Type type, EventSubscribeAttribute attr)
         {
-            EventProcessConfig config = new EventProcessConfig(attr, type);
+            EventProcessingOptions config = new EventProcessingOptions(attr, type);
             config.Verify();  //verify event process config
 
             if (RayConfig.EventProcessors.ContainsKey(config.ProcessorName))
@@ -116,7 +116,7 @@ namespace Ray2
         }
         private void LoadMQSubscribeConfig(EventSubscribeAttribute attr)
         {
-            MQSubscribeConfig subConfig = new MQSubscribeConfig
+            SubscribeOptions subConfig = new SubscribeOptions
             {
                 Group = attr.Name,
                 Topic = attr.EventSourceName,

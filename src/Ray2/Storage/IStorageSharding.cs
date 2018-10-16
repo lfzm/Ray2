@@ -13,12 +13,12 @@ namespace Ray2.Storage
         /// <typeparam name="TStateKey"></typeparam>
         /// <param name="stateKey">state key</param>
         /// <returns></returns>
-        string GetProvider<TStateKey>(TStateKey stateKey);
+        Task<string> GetProvider<TStateKey>(TStateKey stateKey);
         /// <summary>
-        ///Get all the storage providers
+        /// Get all the storage providers
         /// </summary>
         /// <returns></returns>
-        List<string> GetProviderList();
+        Task<List<string>> GetProviderList();
 
         Task<string> GetTable<TStateKey>(TStateKey stateKey);
         Task<List<string>> GetTableList<TStateKey>(TStateKey stateKey, long? createTime);

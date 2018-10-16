@@ -1,4 +1,4 @@
-﻿using Ray2.EventSources;
+﻿using Ray2.EventSourcing;
 using System;
 using System.Collections.Generic;
 using System.Text;

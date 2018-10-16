@@ -2,7 +2,7 @@
 using Orleans.Hosting;
 using Ray2;
 using Ray2.EventProcess;
-using Ray2.EventSources;
+using Ray2.EventSourcing;
 using Ray2.Exceptions;
 using Ray2.MQ;
 using System;

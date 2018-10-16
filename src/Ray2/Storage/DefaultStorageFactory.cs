@@ -22,9 +22,9 @@ namespace Ray2.Storage
             return this.serviceProvider.GetRequiredServiceByName<IEventStorage>(name);
         }
 
-        public ISnapshotStorage GetSnapshotStorage(string name)
+        public IStatusStorage GetStatusStorage(string name)
         {
-            return this.serviceProvider.GetRequiredServiceByName<ISnapshotStorage>(name);
+            return this.serviceProvider.GetRequiredServiceByName<IStatusStorage>(name);
         }
 
        

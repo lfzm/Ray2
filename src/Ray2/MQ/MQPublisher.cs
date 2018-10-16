@@ -12,14 +12,14 @@ namespace Ray2.MQ
         private readonly ILogger logger;
         private readonly IServiceProvider serviceProvider;
         private IEventPublisher publisher;
-        private MQPublishConfig config;
+        private EventPublishOptions config;
         public MQPublisher(ILogger logger, IServiceProvider serviceProvider)
         {
             this.logger = logger;
             this.serviceProvider = serviceProvider;
         }
 
-        public void Injection(MQPublishConfig config)
+        public void Injection(EventPublishOptions config)
         {
             this.config = config;
             this.publisher = this.serviceProvider.GetRequiredServiceByName<IEventPublisher>(config.MQProvider);
