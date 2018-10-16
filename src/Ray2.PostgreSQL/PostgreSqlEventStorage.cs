@@ -18,7 +18,7 @@ namespace Ray2.PostgreSQL
         private readonly ConcurrentDictionary<string, string> sqlDict = new ConcurrentDictionary<string, string>();
         private readonly IServiceProvider sp;
         private readonly ILogger logger;
-        public PostgreSqlEventStorage(ILogger<PostgreSqlSnapshotStorage> logger, IServiceProvider sp)
+        public PostgreSqlEventStorage(ILogger<PostgreSqlStatusStorage> logger, IServiceProvider sp)
         {
             this.logger = logger;
             this.sp = sp;
