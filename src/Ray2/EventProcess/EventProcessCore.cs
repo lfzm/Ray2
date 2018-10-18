@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Ray2.EventProcess
 {
-    public interface IEPBufferBlock
+    public class EventProcessCore : IEventProcessCore
     {
-        Task SendAsync(IEvent @event);
     }
 }

@@ -19,17 +19,15 @@ namespace Ray2.EventSource
         private readonly RayGrain<TState, TStateKey> rayGrain;
         private readonly IEventSourcing<TState, TStateKey> eventSourcing;
         private readonly IMQPublisher mqPublisher;
-        private readonly IServiceProvider serviceProvider;
 
         private IList<IEvent<TStateKey>> transactionEvents = new List<IEvent<TStateKey>>();
         private IList<IEvent> publishEvents = new List<IEvent>();
         private int transactionState = 0;
-        public EventTransaction(RayGrain<TState, TStateKey> rayGrain, IServiceProvider serviceProvider)
+        public EventTransaction(RayGrain<TState, TStateKey> rayGrain)
         {
             this.rayGrain = rayGrain;
             this.eventSourcing = rayGrain.eventSourcing;
             this.mqPublisher = rayGrain.mqPublisher;
-            this.serviceProvider = serviceProvider;
             this.State = this.Clone(rayGrain.State);
         }
 

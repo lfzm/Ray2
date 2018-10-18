@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace Ray2.EventProcess
 {
-    public class EPDispatch : IEPDispatch
+    public class EventProcessorDispatch : IEventProcessorDispatch
     {
         private readonly ILogger logger;
         private readonly IServiceProvider serviceProvider;
-        public EPDispatch(ILogger<EPDispatch> logger,IServiceProvider serviceProvider)
+        public EventProcessorDispatch(ILogger<EventProcessorDispatch> logger,IServiceProvider serviceProvider)
         {
             this.logger = logger;
             this.serviceProvider = serviceProvider;

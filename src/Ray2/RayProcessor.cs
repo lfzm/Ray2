@@ -24,7 +24,7 @@ namespace Ray2
             if (this.eventProcessConfig == null)
                 throw new RayConfigException($"{this.GetType().FullName} is not configured EventSourcing，use the EventSubscribeConfig configuration. ");
             this.Logger = logger;
-            this.eventProcessBufferBlock = new EPBufferBlock(this.TriggerEventProcess);
+            this.eventProcessBufferBlock = new EventProcessBufferBlock(this.TriggerEventProcess);
         }
         public Task Tell(IEvent @event)
         {

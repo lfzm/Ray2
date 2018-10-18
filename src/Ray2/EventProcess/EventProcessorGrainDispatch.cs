@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace Ray2.EventProcess
 {
-    public class EPGrainDispatch : IEventProcessor
+    public class EventProcessorGrainDispatch : IEventProcessor
     {
         private readonly string _grainClassName;
         private readonly IServiceProvider serviceProvider;
         private readonly IGrainFactory grainFactory;
-        public EPGrainDispatch(string grainClassName, IServiceProvider serviceProvider)
+        public EventProcessorGrainDispatch(string grainClassName, IServiceProvider serviceProvider)
         {
             this._grainClassName = grainClassName;
             this.serviceProvider = serviceProvider;

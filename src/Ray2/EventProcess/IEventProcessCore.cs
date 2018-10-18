@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Ray2.EventProcess
 {
-    public class EPTransaction : IEPTransaction
+    public interface IEventProcessCore
     {
     }
 }

@@ -5,13 +5,13 @@ using System.Threading.Tasks.Dataflow;
 
 namespace Ray2.EventProcess
 {
-    public class EPBufferBlock : IEPBufferBlock
+    public class EventProcessBufferBlock : IEventProcessBufferBlock
     {
         private readonly Func<BufferBlock<IEvent>, Task> _process;
         private readonly BufferBlock<IEvent> eventBufferBlock = new BufferBlock<IEvent>();
         private int isProcessing = 0;
 
-        public EPBufferBlock(Func<BufferBlock<IEvent>, Task> process)
+        public EventProcessBufferBlock(Func<BufferBlock<IEvent>, Task> process)
         {
             this._process = process;
         }

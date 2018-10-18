@@ -52,7 +52,7 @@ namespace Ray2
             catch (Exception ex)
             {
                 this.Logger.LogError(ex, $"{StateId} Activate Grain failure");
-                throw ex;
+                throw ex;             
             }
         }
         public override async Task OnDeactivateAsync()
@@ -101,6 +101,7 @@ namespace Ray2
             else
                 return false;
         }
+     
         /// <summary>
         /// Event Publish to mq
         /// </summary>
@@ -124,12 +125,12 @@ namespace Ray2
             if (this.IsBeginTransaction)
                 throw new Exception("Unable to open event again during transaction");
             this.IsBeginTransaction = true;
-            return new EventTransaction<TState, TStateKey>(this, this.ServiceProvider);
+            return new EventTransaction<TState, TStateKey>(this);
         }
         /// <summary>
         /// end transaction
         /// </summary>
-        internal void EndTransaction(IList<IEvent> events = null)
+        internal void EndTransaction(IList<IEvent<TStateKey>> events = null)
         {
             this.IsBeginTransaction = false;
             //Play master status
@@ -144,5 +145,6 @@ namespace Ray2
             if (this.IsBlock)
                 throw new Exception($"Event version and state version don't match!,StateId={State.StateId},Event Version={State.NextVersion()},State Version={State.Version}");
         }
+       
     }
 }

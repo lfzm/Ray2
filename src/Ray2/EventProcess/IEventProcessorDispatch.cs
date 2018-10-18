@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Ray2.EventProcess
 {
-    public interface IEPDispatch
+    public interface IEventProcessorDispatch
     {
         Task<bool> Notice(EventSubscribeInfo info, EventPublishMessage message);
     }

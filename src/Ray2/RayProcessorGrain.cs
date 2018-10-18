@@ -46,7 +46,7 @@ namespace Ray2
             this.MQPublisher = this.ServiceProvider.GetRequiredService<IMQPublisher>();
             this.eventSourcing = this.ServiceProvider.GetRequiredService<IEventSourcing<TState, TStateKey>>();
             this.eventTraceability = this.ServiceProvider.GetRequiredService<IEventTraceability<TState, TStateKey>>();
-            this.eventProcessBufferBlock = new EPBufferBlock(this.TriggerEventProcess);
+            this.eventProcessBufferBlock = new EventProcessBufferBlock(this.TriggerEventProcess);
             this.eventTraceability.Injection(StateId, this.config.Snapshot);
             this.eventSourcing.Injection(StateId, this.eventSourcesConfig);
             this.State = await this.eventTraceability.ReadSnapshotAsync();
