@@ -8,17 +8,17 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
     public class EventSourcing<TState, TStateKey> : IEventSourcing<TState, TStateKey> where TState : IState<TStateKey>, new()
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly EventSourcingOptions _options;
         private readonly ILogger _logger;
-        private readonly IStorageSharding _eventStorageSharding;
-        private readonly IStorageSharding _snapshotStorageSharding;
         private readonly IStorageFactory _storageFactory;
 
+        private IStorageSharding _eventStorageSharding;
+        private IStorageSharding _snapshotStorageSharding;
         private IEventBufferBlock _eventBufferBlock;
         private IEventStorage _eventStorage;
         private IStatusStorage _snapshotStorage;
@@ -31,31 +31,21 @@ namespace Ray2.EventSourcing
             this._options = options;
             this._logger = this._serviceProvider.GetRequiredService<ILogger<EventSourcing<TState, TStateKey>>>();
             this._storageFactory = this._serviceProvider.GetRequiredService<IStorageFactory>();
-            if (!string.IsNullOrEmpty(this._options.StorageOptions.ShardingStrategy))
-            {
-                this._eventStorageSharding = this._serviceProvider.GetRequiredServiceByName<IStorageSharding>(this._options.StorageOptions.ShardingStrategy);
-            }
-            if (!string.IsNullOrEmpty(this._options.SnapshotOptions.ShardingStrategy))
-            {
-                this._snapshotStorageSharding = this._serviceProvider.GetRequiredServiceByName<IStorageSharding>(this._options.SnapshotOptions.ShardingStrategy);
-            }
         }
-
         public async Task<IEventSourcing<TState, TStateKey>> Init(TStateKey stateKey)
         {
             this.StateId = stateKey;
             this.SnapshotTableName = await this.GetSnapshotTableName();
             this._eventStorage = await this.GetEventStorageProvider();
             this._snapshotStorage = await this.GetSnapshotStorageProvider();
-            this._eventBufferBlock = this._serviceProvider.GetRequiredService<IEventBufferBlockFactory>().Create(this._options.StorageOptions.StorageProvider, this._options.EventSourcingName, _eventStorage);
+            this._eventBufferBlock = this._serviceProvider.GetRequiredService<IEventBufferBlockFactory>().Create(this._options.StorageOptions.StorageProvider, this._options.EventSourceName, _eventStorage);
             return this;
         }
-
         public async Task<bool> SaveAsync(IEvent<TStateKey> @event)
         {
             //Sharding processing
             string storageTableName = await this.GetEventTableName();
-            EventSingleStorageModel storageModel = new EventSingleStorageModel(@event.StateId.ToString(), @event, this._options.EventSourcingName, storageTableName);
+            EventSingleStorageModel storageModel = new EventSingleStorageModel(@event.StateId.ToString(), @event, this._options.EventSourceName, storageTableName);
             return await this._eventBufferBlock.SendAsync(storageModel);
         }
         public async Task<bool> SaveAsync(IList<IEvent<TStateKey>> events)
@@ -63,7 +53,7 @@ namespace Ray2.EventSourcing
             if (events.Count == 0)
                 return true;
             string storageTableName = await this.GetEventTableName();
-            EventCollectionStorageModel storageModel = new EventCollectionStorageModel(this._options.EventSourcingName, storageTableName);
+            EventCollectionStorageModel storageModel = new EventCollectionStorageModel(this._options.EventSourceName, storageTableName);
             foreach (var e in events)
             {
                 EventStorageModel eventModel = new EventStorageModel(e.StateId.ToString(), e);
@@ -78,7 +68,7 @@ namespace Ray2.EventSourcing
             List<IEvent> events = new List<IEvent>();
             foreach (var t in tables)
             {
-                var eventModel = await _eventStorage.GetListAsync(this._options.EventSourcingName, queryModel);
+                var eventModel = await _eventStorage.GetListAsync(this._options.EventSourceName, queryModel);
                 if (eventModel == null || eventModel.Count == 0)
                     return new List<IEvent>();
 
@@ -162,12 +152,19 @@ namespace Ray2.EventSourcing
             return state;
         }
 
+        /// <summary>
+        /// 获取事件源快照存储表名，调用分表策略进行分表。
+        /// </summary>
+        /// <returns></returns>
         private async Task<string> GetSnapshotTableName()
         {
+            if (!string.IsNullOrEmpty(this.SnapshotTableName))
+                return this.SnapshotTableName;
+
             string storageTableName = string.Empty;
             if (this._snapshotStorageSharding != null)
             {
-                storageTableName = await this._snapshotStorageSharding.GetTable(this.StateId);
+                storageTableName = await this._snapshotStorageSharding.GetTable(this._options.EventSourceName, StorageType.EventSourceSnapshot, this.StateId);
                 if (string.IsNullOrEmpty(storageTableName))
                 {
                     throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
@@ -175,52 +172,64 @@ namespace Ray2.EventSourcing
             }
             else
             {
-                storageTableName = "ESnapshot_" + this._options.EventSourcingName;
+                storageTableName = this._options.EventSourceName;
             }
-            return storageTableName;
+            this.SnapshotTableName = StorageTableNameBuild.BuildSnapshotTableName(storageTableName);
+            return this.SnapshotTableName;
         }
+        /// <summary>
+        /// 获取事件源存储表名，调用分表策略进行分表。
+        /// </summary>
+        /// <returns></returns>
         private async Task<string> GetEventTableName()
         {
             string storageTableName = string.Empty;
             if (this._eventStorageSharding != null)
             {
-                storageTableName = await this._eventStorageSharding.GetTable(this.StateId);
+                storageTableName = await this._eventStorageSharding.GetTable(this._options.EventSourceName,  StorageType.EventSource,this.StateId);
                 if (string.IsNullOrEmpty(storageTableName))
                 {
                     throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
                 }
-
             }
             else
             {
-                storageTableName = "ES_" + this._options.EventSourcingName;
+                storageTableName = this._options.EventSourceName;
             }
-            return storageTableName;
+            return StorageTableNameBuild.BuildEventTableName(storageTableName);
         }
+        /// <summary>
+        /// 获取事件源所有存储表名，调用分表策略进行分表。
+        /// </summary>
+        /// <returns></returns>
         private async Task<List<string>> GetEventTableNameList(long? createTime)
         {
             List<string> tables = new List<string>();
             if (this._eventStorageSharding != null)
             {
-                tables = await this._eventStorageSharding.GetTableList(this.StateId, createTime);
+                tables = await this._eventStorageSharding.GetTableList(this._options.EventSourceName, StorageType.EventSource, this.StateId, createTime);
                 if (tables == null || tables.Count == 0)
                 {
                     throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
                 }
-
             }
             else
             {
-                tables.Add("ES_" + this._options.EventSourcingName);
+                tables.Add(this._options.EventSourceName);
             }
-            return tables;
+            return tables.Select(f => StorageTableNameBuild.BuildEventTableName(f)).ToList();
         }
+        /// <summary>
+        /// Get a event sourcing  snapshot storage provider
+        /// </summary>
+        /// <returns></returns>
         private async Task<IStatusStorage> GetSnapshotStorageProvider()
         {
             string storageProvider = string.Empty;
-            if (this._snapshotStorageSharding != null)
+            if (!string.IsNullOrEmpty(this._options.SnapshotOptions.ShardingStrategy))
             {
-                storageProvider = await this._snapshotStorageSharding.GetProvider(this.StateId);
+                this._snapshotStorageSharding = this._serviceProvider.GetRequiredServiceByName<IStorageSharding>(this._options.SnapshotOptions.ShardingStrategy);
+                storageProvider = await this._snapshotStorageSharding.GetProvider(this._options.EventSourceName, StorageType.EventSourceSnapshot, this.StateId);
                 if (string.IsNullOrEmpty(storageProvider))
                 {
                     throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
@@ -234,12 +243,17 @@ namespace Ray2.EventSourcing
             var sp = this._storageFactory.GetStatusStorage(storageProvider);
             return sp;
         }
+        /// <summary>
+        /// Get a event sourcing  storage provider
+        /// </summary>
+        /// <returns></returns>
         private async Task<IEventStorage> GetEventStorageProvider()
         {
             string storageProvider = string.Empty;
-            if (this._eventStorageSharding != null)
+            if (!string.IsNullOrEmpty(this._options.StorageOptions.ShardingStrategy))
             {
-                 storageProvider = await this._eventStorageSharding.GetProvider(this.StateId);
+                this._eventStorageSharding = this._serviceProvider.GetRequiredServiceByName<IStorageSharding>(this._options.StorageOptions.ShardingStrategy);
+                storageProvider = await this._eventStorageSharding.GetProvider(this._options.EventSourceName, StorageType.EventSource, this.StateId);
                 if (string.IsNullOrEmpty(storageProvider))
                 {
                     throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
@@ -249,7 +263,6 @@ namespace Ray2.EventSourcing
             {
                 storageProvider = this._options.SnapshotOptions.StorageProvider;
             }
-
             var sp = this._storageFactory.GetEventStorage(storageProvider);
             return sp;
         }

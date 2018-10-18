@@ -1,7 +1,7 @@
 ﻿using Ray2.Storage;
 using System.Threading.Tasks;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
     public interface IEventBufferBlock
     {

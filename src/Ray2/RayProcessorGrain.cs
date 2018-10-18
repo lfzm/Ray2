@@ -5,7 +5,7 @@ using Ray2.Configuration;
 using Ray2.EventHandle;
 using Ray2.EventHandler;
 using Ray2.EventProcess;
-using Ray2.EventSourcing;
+using Ray2.EventSource;
 using Ray2.Exceptions;
 using Ray2.MQ;
 using Ray2.Storage;

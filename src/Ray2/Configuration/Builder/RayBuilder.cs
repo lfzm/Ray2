@@ -9,7 +9,7 @@ using Orleans;
 using Orleans.Runtime;
 using Ray2.Configuration;
 using Ray2.EventProcess;
-using Ray2.EventSourcing;
+using Ray2.EventSource;
 using Ray2.Exceptions;
 using Ray2.MQ;
 

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Ray2.MQ;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
     /// <summary>
     /// Transaction batch event

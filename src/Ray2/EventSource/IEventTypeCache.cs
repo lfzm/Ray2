@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
     public interface IEventTypeCache
     {

@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
-    public  class EventTypeCache: IEventTypeCache
+    public class EventTypeCache : IEventTypeCache
     {
-        private  Dictionary<string, Type> EventTypes { get; } = new Dictionary<string, Type>();
+        private Dictionary<string, Type> EventTypes { get; } = new Dictionary<string, Type>();
 
-        public  bool GetEventType(string name, out Type value)
+        public bool GetEventType(string name, out Type value)
         {
             if (EventTypes.TryGetValue(name, out var type))
             {
@@ -22,7 +22,7 @@ namespace Ray2.EventSourcing
                 return false;
             }
         }
-        public  void Initialize()
+        public void Initialize()
         {
             var assemblyList = AppDomain.CurrentDomain.GetAssemblies().Where(a => !a.IsDynamic);
             var eventType = typeof(IEvent);

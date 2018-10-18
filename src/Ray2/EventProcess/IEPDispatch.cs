@@ -1,7 +1,7 @@
 ﻿using Ray2.MQ;
 using System.Threading.Tasks;
 
-namespace Ray2.EventProcessing
+namespace Ray2.EventProcess
 {
     public interface IEPDispatch
     {

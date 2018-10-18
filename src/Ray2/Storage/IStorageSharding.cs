@@ -7,20 +7,9 @@ namespace Ray2.Storage
 {
     public interface IStorageSharding
     {
-        /// <summary>
-        /// Get the Storage Provider Name based on the state key
-        /// </summary>
-        /// <typeparam name="TStateKey"></typeparam>
-        /// <param name="stateKey">state key</param>
-        /// <returns></returns>
-        Task<string> GetProvider<TStateKey>(TStateKey stateKey);
-        /// <summary>
-        /// Get all the storage providers
-        /// </summary>
-        /// <returns></returns>
-        Task<List<string>> GetProviderList();
-
-        Task<string> GetTable<TStateKey>(TStateKey stateKey);
-        Task<List<string>> GetTableList<TStateKey>(TStateKey stateKey, long? createTime);
+        Task<string> GetProvider<TStateKey>(string name, StorageType type, TStateKey stateKey);
+        Task<List<string>> GetProviderList(string name, StorageType type);
+        Task<string> GetTable<TStateKey>(string tableName, StorageType type, TStateKey stateKey);
+        Task<List<string>> GetTableList<TStateKey>(string tableName, StorageType type, TStateKey stateKey, long? createTime);
     }
 }

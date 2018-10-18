@@ -3,7 +3,7 @@ using Orleans;
 using System;
 using System.Threading.Tasks;
 
-namespace Ray2.EventProcessing
+namespace Ray2.EventProcess
 {
     public class EPGrainDispatch : IEventProcessor
     {

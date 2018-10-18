@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Ray2.EventSourcing;
+using Ray2.EventSource;
 using Microsoft.Extensions.Logging;
 using System.Runtime.ExceptionServices;
 using Ray2.Storage;

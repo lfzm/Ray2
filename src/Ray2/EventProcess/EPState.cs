@@ -1,4 +1,4 @@
-﻿namespace Ray2.EventProcessing
+﻿namespace Ray2.EventProcess
 {
     public class EPState<TStateKey> : State<TStateKey>
     {

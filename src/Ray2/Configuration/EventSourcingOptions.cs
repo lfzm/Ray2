@@ -9,9 +9,9 @@ namespace Ray2.Configuration
     {
         public EventSourcingOptions(EventSourcingAttribute attr)
         {
-            this.EventSourcingName = attr.Name;
+            this.EventSourceName = attr.Name;
         }
-        public string EventSourcingName { get; set; }
+        public string EventSourceName { get; set; }
         public SnapshotOptions SnapshotOptions { get; set; }
         public StorageOptions StorageOptions { get; set; }
     }

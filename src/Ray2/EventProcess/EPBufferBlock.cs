@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
-namespace Ray2.EventProcessing
+namespace Ray2.EventProcess
 {
     public class EPBufferBlock : IEPBufferBlock
     {

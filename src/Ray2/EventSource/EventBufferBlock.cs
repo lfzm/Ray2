@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
     public class EventBufferBlock : IEventBufferBlock
     {

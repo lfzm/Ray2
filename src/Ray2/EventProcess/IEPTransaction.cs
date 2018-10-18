@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Ray2.Storage
+namespace Ray2.EventProcess
 {
-    public interface IStorageShardingPolicy
+    public interface IEPTransaction
     {
     }
 }

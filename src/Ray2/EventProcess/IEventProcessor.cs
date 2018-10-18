@@ -1,7 +1,7 @@
 ﻿using Orleans;
 using System.Threading.Tasks;
 
-namespace Ray2.EventProcessing
+namespace Ray2.EventProcess
 {
     /// <summary>
     /// This is the Event process interface

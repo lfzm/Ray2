@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using Orleans.Runtime;
-using Ray2.EventSourcing;
+using Ray2.EventSource;
 using Ray2.MQ;
 using System;
 using System.Threading.Tasks;
 
-namespace Ray2.EventProcessing
+namespace Ray2.EventProcess
 {
     public class EPDispatch : IEPDispatch
     {

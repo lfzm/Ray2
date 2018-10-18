@@ -1,6 +1,6 @@
 ﻿using Ray2.Storage;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
     public interface IEventBufferBlockFactory
     {

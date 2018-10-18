@@ -3,7 +3,7 @@ using Ray2.Storage;
 using System;
 using System.Collections.Concurrent;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
     public class EventBufferBlockFactory : IEventBufferBlockFactory
     {

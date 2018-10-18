@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Ray2.EventSourcing
+namespace Ray2.EventSource
 {
     /// <summary>
     /// This is the event source interface
