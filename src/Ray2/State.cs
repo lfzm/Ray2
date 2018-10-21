@@ -53,6 +53,6 @@ namespace Ray2
         /// Play event
         /// </summary>
         /// <param name="@event">Event <see cref="IEvent"/></param>
-        internal abstract void PlayEvent(IEvent @event);
+        protected abstract void PlayEvent(IEvent @event);
     }
 }

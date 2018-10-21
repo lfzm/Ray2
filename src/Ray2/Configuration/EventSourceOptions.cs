@@ -5,9 +5,9 @@ using System.Text;
 
 namespace Ray2.Configuration
 {
-    public class EventSourcingOptions
+    public class EventSourceOptions
     {
-        public EventSourcingOptions(EventSourcingAttribute attr)
+        public EventSourceOptions(EventSourcingAttribute attr)
         {
             this.EventSourceName = attr.Name;
         }

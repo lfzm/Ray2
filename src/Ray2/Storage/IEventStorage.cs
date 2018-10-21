@@ -8,7 +8,7 @@ namespace Ray2.Storage
 {
     public interface IEventStorage: IStorage
     {
-        Task<List<EventModel>> GetListAsync(string eventSourceName,  EventQueryModel queryModel);
+        Task<List<EventModel>> GetListAsync(string tableName,  EventQueryModel queryModel);
         Task SaveAsync(List<EventBufferWrap> wrapList);
 
     }

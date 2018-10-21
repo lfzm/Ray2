@@ -58,7 +58,7 @@ namespace Ray2
         }
         private void LoadEventSourcingConfig(Type type, EventSourcingAttribute attr)
         {
-            EventSourcingOptions config = new EventSourcingOptions(attr);
+            EventSourceOptions config = new EventSourceOptions(attr);
             config.Verify();  //verify event process config
 
             if (RayConfig.EventProcessors.ContainsKey(config.EventSourceName))
@@ -88,7 +88,7 @@ namespace Ray2
         }
         private void LoadEventProcessConfig(Type type, EventSubscribeAttribute attr)
         {
-            EventProcessingOptions config = new EventProcessingOptions(attr, type);
+            EventProcessOptions config = new EventProcessOptions(attr, type);
             config.Verify();  //verify event process config
 
             if (RayConfig.EventProcessors.ContainsKey(config.ProcessorName))

@@ -17,7 +17,7 @@ namespace Ray2
     {
         protected ILogger Logger { get; set; }
         private IEventProcessBufferBlock eventProcessBufferBlock;
-        private EventProcessingOptions eventProcessConfig;
+        private EventProcessOptions eventProcessConfig;
         public RayProcessor(ILogger logger)
         {
             this.eventProcessConfig = RayConfig.GetEventProcessConfig(this.GetType());

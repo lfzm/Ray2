@@ -29,8 +29,8 @@ namespace Ray2
         protected ILogger Logger { get; set; }
         protected IMQPublisher MQPublisher { get; private set; }
         protected abstract TStateKey StateId { get; }
-        private EventProcessingOptions config;
-        private EventSourcingOptions eventSourcesConfig;
+        private EventProcessOptions config;
+        private EventSourceOptions eventSourcesConfig;
         private IEventTraceability<TState, TStateKey> eventTraceability;
         private IEventSourcing<TState, TStateKey> eventSourcing;
         private IEventProcessBufferBlock eventProcessBufferBlock;

@@ -2,7 +2,7 @@
 
 namespace Ray2.Configuration
 {
-    public class EventProcessingOptions
+    public class EventProcessOptions
     {
         public string EventProcessorName { get; set; }
         public string EventSourceName { get; set; }

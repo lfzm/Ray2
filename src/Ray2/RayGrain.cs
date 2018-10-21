@@ -27,7 +27,7 @@ namespace Ray2
         protected ILogger Logger { get; set; }
         internal IEventSourcing<TState, TStateKey> eventSourcing;
         internal IMQPublisher mqPublisher;
-        private EventSourcingOptions config;
+        private EventSourceOptions config;
         private bool IsBeginTransaction;
         private bool IsBlock;
         protected abstract TStateKey StateId { get; }

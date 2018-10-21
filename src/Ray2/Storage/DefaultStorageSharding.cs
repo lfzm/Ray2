@@ -8,7 +8,7 @@ namespace Ray2.Storage
 {
     public class DefaultStorageSharding : IStorageSharding
     {
-        public Task<string> GetProvider<TStateKey>(string name, StorageType type, TStateKey stateKey)
+        public Task<string> GetProvider(string name, StorageType type, string  stateKey)
         {
             return Task.FromResult(name);
         }
@@ -18,14 +18,14 @@ namespace Ray2.Storage
             return Task.FromResult(new List<string>() { name });
         }
 
-        public Task<string> GetTable<TStateKey>(string tableName, StorageType type, TStateKey stateKey)
+        public Task<string> GetTable(string name, StorageType type, string stateKey)
         {
-            return Task.FromResult(tableName);
+            return Task.FromResult(name);
         }
 
-        public Task<List<string>> GetTableList<TStateKey>(string tableName, StorageType type, TStateKey stateKey, long? createTime)
+        public Task<List<string>> GetTableList(string name, StorageType type, string stateKey, long? createTime)
         {
-            return Task.FromResult(new List<string>() { tableName });
+            return Task.FromResult(new List<string>() { name });
         }
     }
 }
