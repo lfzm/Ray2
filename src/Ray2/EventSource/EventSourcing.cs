@@ -30,9 +30,14 @@ namespace Ray2.EventSource
             this._eventStorage = await this._storageFactory.GetEventStorage(this.Options.EventSourceName, this.StateId.ToString());
             this._eventBufferBlock = this._serviceProvider.GetRequiredService<IEventBufferBlockFactory>().Create(this.Options.StorageOptions.StorageProvider, this.Options.EventSourceName, _eventStorage);
 
-            IStorageFactory snapshotStorageFactory = new StorageFactory(this._serviceProvider, this.Options.SnapshotOptions);
-            this._snapshotStorage = await snapshotStorageFactory.GetSnapshotStorage(this.Options.EventSourceName, this.StateId.ToString());
-            this.SnapshotTableName = await snapshotStorageFactory.GetSnapshotTable(this.Options.EventSourceName, this.StateId.ToString());
+            //Get snapshot storage information
+            if (this.Options.SnapshotOptions.SnapshotType!= SnapshotType.NoSnapshot)
+            {
+                IStorageFactory snapshotStorageFactory = new StorageFactory(this._serviceProvider, this.Options.SnapshotOptions);
+                this._snapshotStorage = await snapshotStorageFactory.GetSnapshotStorage(this.Options.EventSourceName, this.StateId.ToString());
+                this.SnapshotTableName = await snapshotStorageFactory.GetSnapshotTable(this.Options.EventSourceName, this.StateId.ToString());
+            }
+           
             return this;
         }
         public async Task<bool> SaveAsync(IEvent<TStateKey> @event)
@@ -94,14 +99,15 @@ namespace Ray2.EventSource
         public async Task<TState> ReadSnapshotAsync()
         {
             var state = new TState { StateId = this.StateId };
-            if (this.Options.SnapshotOptions.SnapshotType == SnapshotType.NoSnapshot)
-                return state;
-
-            state = await this._snapshotStorage.ReadAsync<TState>(this.SnapshotTableName, this.StateId);
+            if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
+            {
+                state = await this._snapshotStorage.ReadAsync<TState>(this.SnapshotTableName, this.StateId);
+            }
             //Get current event
             List<IEvent<TStateKey>> events = (List<IEvent<TStateKey>>)await this.GetListAsync(new EventQueryModel(state.Version));
             if (events == null || events.Count == 0)
                 return state;
+
             state = this.TraceAsync(state, events);
             //save snapshot
             await this.SaveSnapshotAsync(state);

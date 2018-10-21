@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Ray2.PostgreSQL
 {
-    public class PostgreSqlStatusStorage : IStatusStorage
+    public class PostgreSqlStatusStorage : IStateStorage
     {
         private readonly IServiceProvider sp;
         private readonly ISerializer serializer;
