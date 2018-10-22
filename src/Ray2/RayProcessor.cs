@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Orleans.Runtime;
 using Ray2.Configuration;
 using Ray2.EventHandler;
 using Ray2.EventProcess;
@@ -16,56 +17,20 @@ namespace Ray2
     public abstract class RayProcessor : IEventProcessor
     {
         protected ILogger Logger { get; set; }
-        private IEventProcessBufferBlock eventProcessBufferBlock;
-        private EventProcessOptions eventProcessConfig;
-        public RayProcessor(ILogger logger)
+        private readonly IEventProcessCore _eventProcessCore;
+        private readonly IServiceProvider _serviceProvider;
+        public RayProcessor(IServiceProvider serviceProvider, ILogger logger)
         {
-            this.eventProcessConfig = RayConfig.GetEventProcessConfig(this.GetType());
-            if (this.eventProcessConfig == null)
-                throw new RayConfigException($"{this.GetType().FullName} is not configured EventSourcing，use the EventSubscribeConfig configuration. ");
+            this._serviceProvider = serviceProvider;
+            this._eventProcessCore =  this._serviceProvider.GetRequiredServiceByName<IEventProcessCore>(this.GetType().FullName)
+                .Init(this.OnEventProcessing).GetAwaiter().GetResult();
             this.Logger = logger;
-            this.eventProcessBufferBlock = new EventProcessBufferBlock(this.TriggerEventProcess);
         }
         public Task Tell(IEvent @event)
         {
-            return this.eventProcessBufferBlock.SendAsync(@event);
+            return this._eventProcessCore.Tell(@event);
         }
-        internal async Task TriggerEventProcess(BufferBlock<IEvent> eventBuffer)
-        {
-            try
-            {
-                List<IEvent> events = new List<IEvent>();
-                while (eventBuffer.TryReceive(out var @event))
-                {
-                    if (events.Count > this.eventProcessConfig.OnceProcessCount)
-                        break;
-                    events.Add(@event);
-                }
-                //Exclude duplicate events
-                using (var tokenSource = new CancellationTokenSource())
-                {
-                    var tasks = events.Select(@event => OnEventProcessing(@event));
-                    var taskAllEvent = Task.WhenAll(tasks);
-                    using (var taskTimeOut = Task.Delay(this.eventProcessConfig.OnceProcessTimeout, tokenSource.Token))
-                    {
-                        await Task.WhenAny(taskAllEvent, taskTimeOut);
-                        if (taskAllEvent.Status == TaskStatus.RanToCompletion)
-                        {
-                            tokenSource.Cancel();
-                        }
-                        else
-                        {
-                            throw new Exception("Event processing timeout");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                this.Logger.LogError(ex, "event process failed");
-            }
-        }
-
+      
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract Task OnEventProcessing(IEvent @event);
 
