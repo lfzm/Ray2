@@ -43,16 +43,16 @@ namespace Ray2
         {
             try
             {
-                this.eventSourcing = await this.ServiceProvider.GetRequiredServiceByKey<Type, IEventSourcing<TState, TStateKey>>(this.GetType()).Init(this.StateId);
+                this.eventSourcing = await this.ServiceProvider.GetRequiredServiceByName<IEventSourcing<TState, TStateKey>>(this.GetType().FullName)
+                    .Init(this.StateId);
                 this.mqPublisher = this.ServiceProvider.GetRequiredService<IMQPublisher>();
-
                 this.State = await this.eventSourcing.ReadSnapshotAsync();
                 await base.OnActivateAsync();
             }
             catch (Exception ex)
             {
                 this.Logger.LogError(ex, $"{StateId} Activate Grain failure");
-                throw ex;             
+                throw ex;
             }
         }
         public override async Task OnDeactivateAsync()
@@ -101,7 +101,7 @@ namespace Ray2
             else
                 return false;
         }
-     
+
         /// <summary>
         /// Event Publish to mq
         /// </summary>
@@ -145,6 +145,6 @@ namespace Ray2
             if (this.IsBlock)
                 throw new Exception($"Event version and state version don't match!,StateId={State.StateId},Event Version={State.NextVersion()},State Version={State.Version}");
         }
-       
+
     }
 }

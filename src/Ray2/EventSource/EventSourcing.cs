@@ -17,7 +17,7 @@ namespace Ray2.EventSource
         private IEventBufferBlock _eventBufferBlock;
         private IEventStorage _eventStorage;
         private IStateStorage _snapshotStorage;
-        private string SnapshotTableName;
+        private StorageTableInfo SnapshotTable;
 
         public EventSourcing(IServiceProvider serviceProvider, EventSourceOptions options, ILogger<EventSourcing<TState, TStateKey>> logger)
             : base(serviceProvider, options, logger)
@@ -31,13 +31,13 @@ namespace Ray2.EventSource
             this._eventBufferBlock = this._serviceProvider.GetRequiredService<IEventBufferBlockFactory>().Create(this.Options.StorageOptions.StorageProvider, this.Options.EventSourceName, _eventStorage);
 
             //Get snapshot storage information
-            if (this.Options.SnapshotOptions.SnapshotType!= SnapshotType.NoSnapshot)
+            if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
             {
                 IStorageFactory snapshotStorageFactory = new StorageFactory(this._serviceProvider, this.Options.SnapshotOptions);
                 this._snapshotStorage = await snapshotStorageFactory.GetSnapshotStorage(this.Options.EventSourceName, this.StateId.ToString());
-                this.SnapshotTableName = await snapshotStorageFactory.GetSnapshotTable(this.Options.EventSourceName, this.StateId.ToString());
+                this.SnapshotTable = await snapshotStorageFactory.GetSnapshotTable(this.Options.EventSourceName, this.StateId.ToString());
             }
-           
+
             return this;
         }
         public async Task<bool> SaveAsync(IEvent<TStateKey> @event)
@@ -60,18 +60,19 @@ namespace Ray2.EventSource
             }
             return await this._eventBufferBlock.SendAsync(storageModel);
         }
-        private Task<string> GetEventTableName()
+        private async Task<string> GetEventTableName()
         {
-            return this._storageFactory.GetEventTable(this.Options.EventSourceName, this.StateId.ToString());
+            StorageTableInfo tableInfo = await this._storageFactory.GetEventTable(this.Options.EventSourceName, this.StateId.ToString());
+            return tableInfo.Name;
         }
         public async override Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel)
         {
             queryModel.StateId = this.StateId.ToString();
-            List<string> tables = await this._storageFactory.GetEventTableList(this.Options.EventSourceName, this.StateId.ToString(), queryModel.StartTime);
+            List<StorageTableInfo> tables = await this._storageFactory.GetEventTableList(this.Options.EventSourceName, this.StateId.ToString(), queryModel.StartTime);
             List<IEvent> events = new List<IEvent>();
             foreach (var t in tables)
             {
-                var eventModel = await _eventStorage.GetListAsync(this.Options.EventSourceName, queryModel);
+                var eventModel = await _eventStorage.GetListAsync(t.Name, queryModel);
                 if (eventModel == null || eventModel.Count == 0)
                     return new List<IEvent>();
 
@@ -101,7 +102,7 @@ namespace Ray2.EventSource
             var state = new TState { StateId = this.StateId };
             if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
             {
-                state = await this._snapshotStorage.ReadAsync<TState>(this.SnapshotTableName, this.StateId);
+                state = await this._snapshotStorage.ReadAsync<TState>(this.SnapshotTable.Name, this.StateId);
             }
             //Get current event
             List<IEvent<TStateKey>> events = (List<IEvent<TStateKey>>)await this.GetListAsync(new EventQueryModel(state.Version));
@@ -119,7 +120,7 @@ namespace Ray2.EventSource
             if (this.Options.SnapshotOptions.SnapshotType == SnapshotType.NoSnapshot)
                 return;
 
-            await this._snapshotStorage.DeleteAsync(this.SnapshotTableName, this.StateId);
+            await this._snapshotStorage.DeleteAsync(this.SnapshotTable.Name, this.StateId);
         }
         public async Task SaveSnapshotAsync(TState state)
         {
@@ -128,9 +129,9 @@ namespace Ray2.EventSource
             try
             {
                 if (state.Version == 1)
-                    await this._snapshotStorage.InsertAsync(this.SnapshotTableName, state.StateId, state);
+                    await this._snapshotStorage.InsertAsync(this.SnapshotTable.Name, state.StateId, state);
                 else
-                    await this._snapshotStorage.UpdateAsync(this.SnapshotTableName, state.StateId, state);
+                    await this._snapshotStorage.UpdateAsync(this.SnapshotTable.Name, state.StateId, state);
             }
             catch (Exception ex)
             {
@@ -175,9 +176,18 @@ namespace Ray2.EventSource
             throw new NotImplementedException();
         }
 
-        public virtual Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel)
+        public virtual async Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel)
         {
-            throw new NotImplementedException();
+            IStorageFactory storageFactory = new StorageFactory(this._serviceProvider, Options.StorageOptions);
+            var storages = await storageFactory.GetEventStorageList(this.Options.EventSourceName);
+            if (storages == null || storages.Count == 0)
+            {
+                throw new Exception("没有找到对应的存储提提供商");
+            }
+            foreach (var storage in storages)
+            {
+                List<string> tables = await this._storageFactory.GetEventTableList(this.Options.EventSourceName, this.StateId.ToString(), queryModel.StartTime);
+            }
         }
     }
 }

@@ -10,13 +10,15 @@ namespace Ray2.Storage
     {
         Task<IEventStorage> GetEventStorage(string eventSourceName, string stateKey);
         Task<IList<IEventStorage>> GetEventStorageList(string eventSourceName);
-        Task<string> GetEventTable(string eventSourceName, string stateKey);
-        Task<List<string>> GetEventTableList(string eventSourceName, string stateKey, long? createTime);
+        Task<StorageTableInfo> GetEventTable(string eventSourceName, string stateKey);
+        Task<List<StorageTableInfo>> GetEventTableList(string eventSourceName, long? createTime);
+        Task<List<StorageTableInfo>> GetEventTableList(string eventSourceName, string stateKey, long? createTime);
+
 
         Task<IStateStorage> GetSnapshotStorage(string eventSourceName, string stateKey);
-        Task<string> GetSnapshotTable(string eventSourceName, string stateKey);
+        Task<StorageTableInfo> GetSnapshotTable(string eventSourceName, string stateKey);
 
         Task<IStateStorage> GetStateStorage(string eventProcessorName, string stateKey);
-        Task<string> GetStateTable(string eventProcessorName, string stateKey);
+        Task<StorageTableInfo> GetStateTable(string eventProcessorName, string stateKey);
     }
 }

@@ -79,7 +79,6 @@ namespace Ray2.EventProcess
         }
     }
 
-
     public class EventProcessCore<TState, TStateKey> : EventProcessCore, IEventProcessCore<TState, TStateKey>
            where TState : IState<TStateKey>, new()
     {
@@ -88,7 +87,7 @@ namespace Ray2.EventProcess
         private TState State;
         private TStateKey StateId;
         private IStateStorage _stateStorage;
-        private string StorageTableName;
+        private StorageTableInfo StorageTable;
         public EventProcessCore(IServiceProvider serviceProvider, EventProcessOptions options, ILogger<EventProcessCore<TState, TStateKey>> logger)
             : base(serviceProvider, options, logger)
         {
@@ -101,7 +100,7 @@ namespace Ray2.EventProcess
             this.StateId = stateId;
             this._eventProcessor = eventProcessor;
             this._stateStorage = await this._storageFactory.GetStateStorage(this.Options.EventProcessorName, this.StateId.ToString());
-            this.StorageTableName = await _storageFactory.GetStateTable(this.Options.EventProcessorName, this.StateId.ToString());
+            this.StorageTable = await _storageFactory.GetStateTable(this.Options.EventProcessorName, this.StateId.ToString());
             this.State = await this.ReadStateAsync();
             return this;
         }
@@ -200,15 +199,15 @@ namespace Ray2.EventProcess
         public async Task SaveStateAsync()
         {
             if (this.State.Version == 1)
-                await this._stateStorage.InsertAsync(this.StorageTableName, this.StateId, State);
+                await this._stateStorage.InsertAsync(this.StorageTable.Name, this.StateId, State);
             else
-                await this._stateStorage.UpdateAsync(this.StorageTableName, this.StateId, State);
+                await this._stateStorage.UpdateAsync(this.StorageTable.Name, this.StateId, State);
         }
         public async Task<TState> ReadStateAsync()
         {
             if (this.State != null)
                 return this.State;
-            var state = await this._stateStorage.ReadAsync<TState>(this.StorageTableName, this.StateId);
+            var state = await this._stateStorage.ReadAsync<TState>(this.StorageTable.Name, this.StateId);
             if (state == null)
             {
                 return new TState()
@@ -221,7 +220,7 @@ namespace Ray2.EventProcess
         }
         public Task ClearStateAsync()
         {
-            return this._stateStorage.DeleteAsync(this.StorageTableName, this.StateId);
+            return this._stateStorage.DeleteAsync(this.StorageTable.Name, this.StateId);
         }
         private IEventSourcing GetEventSourcing()
         {
