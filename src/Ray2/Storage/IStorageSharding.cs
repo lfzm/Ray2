@@ -9,8 +9,8 @@ namespace Ray2.Storage
     {
         Task<string> GetProvider(string name, StorageType type, string stateKey);
         Task<List<string>> GetProviderList(string name, StorageType type);
-        Task<StorageTableInfo> GetTable(string name, StorageType type, string stateKey);
-        Task<List<StorageTableInfo>> GetTableList(string name, StorageType type, long? createTime);
-        Task<List<StorageTableInfo>> GetTableList(string name, StorageType type, string stateKey, long? createTime);
+        Task<EventStorageInfo> GetTable(string name, StorageType type, string stateKey);
+        Task<List<EventStorageInfo>> GetTableList(string name, StorageType type, long? createTime);
+        Task<List<EventStorageInfo>> GetTableList(string name, StorageType type, string stateKey, long? createTime);
     }
 }

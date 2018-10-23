@@ -17,7 +17,7 @@ namespace Ray2.EventSource
         private IEventBufferBlock _eventBufferBlock;
         private IEventStorage _eventStorage;
         private IStateStorage _snapshotStorage;
-        private StorageTableInfo SnapshotTable;
+        private string SnapshotTable;
 
         public EventSourcing(IServiceProvider serviceProvider, EventSourceOptions options, ILogger<EventSourcing<TState, TStateKey>> logger)
             : base(serviceProvider, options, logger)
@@ -62,32 +62,18 @@ namespace Ray2.EventSource
         }
         private async Task<string> GetEventTableName()
         {
-            StorageTableInfo tableInfo = await this._storageFactory.GetEventTable(this.Options.EventSourceName, this.StateId.ToString());
-            return tableInfo.Name;
+            return await this._storageFactory.GetEventTable(this.Options.EventSourceName, this.StateId.ToString());
         }
         public async override Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel)
         {
             queryModel.StateId = this.StateId.ToString();
-            List<StorageTableInfo> tables = await this._storageFactory.GetEventTableList(this.Options.EventSourceName, this.StateId.ToString(), queryModel.StartTime);
+            List<string> tables = await this._storageFactory.GetEventTableList(this.Options.EventSourceName, this.StateId.ToString(), queryModel.StartTime);
             List<IEvent> events = new List<IEvent>();
             foreach (var t in tables)
             {
-                var eventModel = await _eventStorage.GetListAsync(t.Name, queryModel);
-                if (eventModel == null || eventModel.Count == 0)
-                    return new List<IEvent>();
-
-                foreach (var model in eventModel)
-                {
-                    if (model.Data is IEvent<TStateKey> @event)
-                    {
-                        events.Add(@event);
-                    }
-                    else
-                    {
-                        this._logger.LogWarning($"{model.TypeCode}.{model.Version}  not equal to {typeof(IEvent<TStateKey>).Name}");
-                        continue;
-                    }
-                }
+                var eventModels = await _eventStorage.GetListAsync(t, queryModel);
+                var _events = this.ConvertEvent<TStateKey>(eventModels);
+                events.AddRange(_events);
                 if (queryModel.Limit > 0)
                 {
                     if (events.Count >= queryModel.Limit)
@@ -102,7 +88,7 @@ namespace Ray2.EventSource
             var state = new TState { StateId = this.StateId };
             if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
             {
-                state = await this._snapshotStorage.ReadAsync<TState>(this.SnapshotTable.Name, this.StateId);
+                state = await this._snapshotStorage.ReadAsync<TState>(this.SnapshotTable, this.StateId);
             }
             //Get current event
             List<IEvent<TStateKey>> events = (List<IEvent<TStateKey>>)await this.GetListAsync(new EventQueryModel(state.Version));
@@ -120,7 +106,7 @@ namespace Ray2.EventSource
             if (this.Options.SnapshotOptions.SnapshotType == SnapshotType.NoSnapshot)
                 return;
 
-            await this._snapshotStorage.DeleteAsync(this.SnapshotTable.Name, this.StateId);
+            await this._snapshotStorage.DeleteAsync(this.SnapshotTable, this.StateId);
         }
         public async Task SaveSnapshotAsync(TState state)
         {
@@ -129,9 +115,9 @@ namespace Ray2.EventSource
             try
             {
                 if (state.Version == 1)
-                    await this._snapshotStorage.InsertAsync(this.SnapshotTable.Name, state.StateId, state);
+                    await this._snapshotStorage.InsertAsync(this.SnapshotTable, state.StateId, state);
                 else
-                    await this._snapshotStorage.UpdateAsync(this.SnapshotTable.Name, state.StateId, state);
+                    await this._snapshotStorage.UpdateAsync(this.SnapshotTable, state.StateId, state);
             }
             catch (Exception ex)
             {
@@ -179,15 +165,64 @@ namespace Ray2.EventSource
         public virtual async Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel)
         {
             IStorageFactory storageFactory = new StorageFactory(this._serviceProvider, Options.StorageOptions);
-            var storages = await storageFactory.GetEventStorageList(this.Options.EventSourceName);
-            if (storages == null || storages.Count == 0)
-            {
-                throw new Exception("没有找到对应的存储提提供商");
-            }
+            var storages = await storageFactory.GetEventStorageList(this.Options.EventSourceName, queryModel.StartTime);
+            List<IEvent> events = new List<IEvent>();
             foreach (var storage in storages)
             {
-                List<string> tables = await this._storageFactory.GetEventTableList(this.Options.EventSourceName, this.StateId.ToString(), queryModel.StartTime);
+                foreach (var table in storage.Tables)
+                {
+                    var eventModels = await storage.Storage.GetListAsync(table, queryModel);
+                    var _events = this.ConvertEvent(eventModels);
+                    events.AddRange(_events);
+                    if (queryModel.Limit > 0)
+                    {
+                        if (events.Count >= queryModel.Limit)
+                            break;
+                    }
+                }
             }
+            return events;
+        }
+
+        protected List<IEvent> ConvertEvent(IList<EventModel> eventModels)
+        {
+            List<IEvent> events = new List<IEvent>();
+            if (eventModels == null || eventModels.Count == 0)
+                return new List<IEvent>();
+
+            foreach (var model in eventModels)
+            {
+                if (model.Data is IEvent @event)
+                {
+                    events.Add(@event);
+                }
+                else
+                {
+                    this._logger.LogWarning($"{model.TypeCode}.{model.Version}  not equal to IEvent");
+                    continue;
+                }
+            }
+            return events;
+        }
+        protected List<IEvent> ConvertEvent<TStateKey>(IList<EventModel> eventModels)
+        {
+            List<IEvent> events = new List<IEvent>();
+            if (eventModels == null || eventModels.Count == 0)
+                return new List<IEvent>();
+
+            foreach (var model in eventModels)
+            {
+                if (model.Data is IEvent<TStateKey> @event)
+                {
+                    events.Add(@event);
+                }
+                else
+                {
+                    this._logger.LogWarning($"{model.TypeCode}.{model.Version}  not equal to {typeof(IEvent<TStateKey>).Name}");
+                    continue;
+                }
+            }
+            return events;
         }
     }
 }

@@ -87,7 +87,7 @@ namespace Ray2.EventProcess
         private TState State;
         private TStateKey StateId;
         private IStateStorage _stateStorage;
-        private StorageTableInfo StorageTable;
+        private EventStorageInfo StorageTable;
         public EventProcessCore(IServiceProvider serviceProvider, EventProcessOptions options, ILogger<EventProcessCore<TState, TStateKey>> logger)
             : base(serviceProvider, options, logger)
         {
