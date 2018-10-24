@@ -8,12 +8,12 @@ namespace Ray2.EventProcess
     public class EventProcessorGrainDispatch : IEventProcessor
     {
         private readonly string _grainClassName;
-        private readonly IServiceProvider serviceProvider;
+        private readonly IServiceProvider _serviceProvider;
         private readonly IGrainFactory grainFactory;
         public EventProcessorGrainDispatch(string grainClassName, IServiceProvider serviceProvider)
         {
             this._grainClassName = grainClassName;
-            this.serviceProvider = serviceProvider;
+            this._serviceProvider = serviceProvider;
             this.grainFactory = serviceProvider.GetRequiredService<IGrainFactory>();
         }
         public Task Tell(IEvent @event)

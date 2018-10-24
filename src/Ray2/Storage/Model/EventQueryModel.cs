@@ -6,7 +6,6 @@ namespace Ray2.Storage
 {
     public class EventQueryModel
     {
-      
         public EventQueryModel(Int64 startVersion, Int64? startTime = null)
         {
             this.StartVersion = startVersion;

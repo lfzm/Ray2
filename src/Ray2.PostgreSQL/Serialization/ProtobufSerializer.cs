@@ -38,7 +38,7 @@ namespace Ray2.PostgreSQL.Serialization
 
         public byte[] Serialize(object instance)
         {
-            throw new NotImplementedException();
+            
         }
     }
 }

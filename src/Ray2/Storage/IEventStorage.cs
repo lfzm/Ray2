@@ -10,6 +10,5 @@ namespace Ray2.Storage
     {
         Task<List<EventModel>> GetListAsync(string tableName,  EventQueryModel queryModel);
         Task SaveAsync(List<EventBufferWrap> wrapList);
-
     }
 }

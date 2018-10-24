@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Orleans.Runtime;
 using Ray2.Configuration;
 using Ray2.Storage;
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -34,8 +32,8 @@ namespace Ray2.EventSource
             if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
             {
                 IStorageFactory snapshotStorageFactory = new StorageFactory(this._serviceProvider, this.Options.SnapshotOptions);
-                this._snapshotStorage = await snapshotStorageFactory.GetSnapshotStorage(this.Options.EventSourceName, this.StateId.ToString());
-                this.SnapshotTable = await snapshotStorageFactory.GetSnapshotTable(this.Options.EventSourceName, this.StateId.ToString());
+                this._snapshotStorage = await snapshotStorageFactory.GetStateStorage(this.Options.EventSourceName, StorageType.EventSourceSnapshot, this.StateId.ToString());
+                this.SnapshotTable = await snapshotStorageFactory.GetTable(this.Options.EventSourceName, StorageType.EventSourceSnapshot, this.StateId.ToString());
             }
 
             return this;
@@ -62,12 +60,12 @@ namespace Ray2.EventSource
         }
         private async Task<string> GetEventTableName()
         {
-            return await this._storageFactory.GetEventTable(this.Options.EventSourceName, this.StateId.ToString());
+            return await this._storageFactory.GetTable(this.Options.EventSourceName, StorageType.EventSource, this.StateId.ToString());
         }
         public async override Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel)
         {
             queryModel.StateId = this.StateId.ToString();
-            List<string> tables = await this._storageFactory.GetEventTableList(this.Options.EventSourceName, this.StateId.ToString(), queryModel.StartTime);
+            List<string> tables = await this._storageFactory.GetTableList(this.Options.EventSourceName, StorageType.EventSource, this.StateId.ToString(), queryModel.StartTime);
             List<IEvent> events = new List<IEvent>();
             foreach (var t in tables)
             {
@@ -157,9 +155,12 @@ namespace Ray2.EventSource
             this._logger = logger;
         }
 
-        public virtual Task ClearSnapshotAsync(string stateId)
+        public virtual async Task ClearSnapshotAsync(string stateId)
         {
-            throw new NotImplementedException();
+            IStorageFactory storageFactory = new StorageFactory(this._serviceProvider, Options.SnapshotOptions);
+            var storageTable = await storageFactory.GetTable(this.Options.EventSourceName, StorageType.EventSourceSnapshot, stateId);
+            var storage = await storageFactory.GetStateStorage(this.Options.EventSourceName, StorageType.EventSourceSnapshot, stateId);
+            await storage.DeleteAsync(storageTable, stateId);
         }
 
         public virtual async Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel)

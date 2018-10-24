@@ -50,7 +50,7 @@ namespace Ray2.PostgreSQL
         }
         public void TotalEventStorageCount(string eventSourceName, int count)
         {
-            throw new NotImplementedException();
+            
         }
     }
 

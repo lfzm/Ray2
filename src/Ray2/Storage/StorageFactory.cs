@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using Microsoft.Extensions.DependencyInjection;
-using System.Text;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Orleans.Runtime;
 using Ray2.Configuration;
-using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Ray2.Storage
@@ -13,189 +12,130 @@ namespace Ray2.Storage
     public class StorageFactory : IStorageFactory
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly StorageOptions _storageOptions;
-        private readonly IStorageSharding storageSharding;
+        private readonly StorageOptions _options;
         private readonly ILogger _logger;
+        private readonly IStorageSharding _storageSharding;
 
         public StorageFactory(IServiceProvider serviceProvider, StorageOptions storageOptions)
         {
+            this._options = storageOptions;
             this._serviceProvider = serviceProvider;
+            this._logger = this._serviceProvider.GetRequiredService<ILogger<StorageFactory>>();
+            this._storageSharding = this.GetStorageSharding();
         }
 
-        public IEventStorage GetEventStorage(string eventSourceName, string stateKey)
+        public async Task<IEventStorage> GetEventStorage(string name, string stateKey)
         {
-            return this._serviceProvider.GetRequiredServiceByName<IEventStorage>(eventSourceName);
-        }
-
-        public IList<IEventStorage> GetEventStorageList(string eventSourceName)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<string> GetEventTable(string eventSourceName, string stateKey)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<List<string>> GetEventTableList(string eventSourceName, string stateKey, long? createTime)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IStateStorage GetSnapshotStorage(string eventSourceName, string stateKey)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<string> GetSnapshotTable(string eventSourceName, string stateKey)
-        {
-            throw new NotImplementedException();
-        }
- 
-        public IStateStorage GetStateStorage(string eventProcessorName, string stateKey)
-        {
-            return this._serviceProvider.GetRequiredServiceByName<IStateStorage>(eventProcessorName);
-        }
-
-        public Task<string> GetStateTable(string eventProcessorName, string stateKey)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        /// <summary>
-        /// 获取事件源快照存储表名，调用分表策略进行分表。
-        /// </summary>
-        /// <returns></returns>
-        private async Task<string> GetSnapshotTableName()
-        {
-            if (!string.IsNullOrEmpty(this.SnapshotTableName))
-                return this.SnapshotTableName;
-
-            string storageTableName = string.Empty;
-            if (this._snapshotStorageSharding != null)
+            string storageProvider = string.Empty;
+            if (this._storageSharding != null)
             {
-                storageTableName = await this._snapshotStorageSharding.GetTable(this.Options.EventSourceName, StorageType.EventSourceSnapshot, this.StateId.ToString());
-                if (string.IsNullOrEmpty(storageTableName))
-                {
-                    throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
-                }
+                storageProvider = await this._storageSharding.GetProvider(name, StorageType.EventSource, stateKey);
             }
             else
             {
-                storageTableName = this.Options.EventSourceName;
+                storageProvider = this._options.StorageProvider;
             }
-            this.SnapshotTableName = StorageTableNameBuild.BuildSnapshotTableName(storageTableName);
-            return this.SnapshotTableName;
-        }
-        /// <summary>
-        /// 获取事件源存储表名，调用分表策略进行分表。
-        /// </summary>
-        /// <returns></returns>
-        private async Task<string> GetEventTableName()
-        {
-            string storageTableName = string.Empty;
-            if (this._eventStorageSharding != null)
+            if (string.IsNullOrEmpty(storageProvider))
             {
-                storageTableName = await this._eventStorageSharding.GetTable(this.Options.EventSourceName, StorageType.EventSource, this.StateId.ToString());
-                if (string.IsNullOrEmpty(storageTableName))
-                {
-                    throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
-                }
+                throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
+            }
+            return this._serviceProvider.GetRequiredServiceByName<IEventStorage>(storageProvider);
+        }
+
+        public async Task<List<EventStorageInfo>> GetEventStorageList(string name, long? createTime)
+        {
+            List<EventStorageInfo> storageList = new List<EventStorageInfo>();
+            if (this._storageSharding != null)
+            {
+                storageList = await this._storageSharding.GetProviderList(name, StorageType.EventSource, createTime);
             }
             else
             {
-                storageTableName = this.Options.EventSourceName;
+                EventStorageInfo storageInfo = new EventStorageInfo();
+                storageInfo.EventSource = name;
+                storageInfo.Tables = new List<string>();
+                storageInfo.Tables.Add(name);
             }
-            return StorageTableNameBuild.BuildEventTableName(storageTableName);
+            if (storageList == null || storageList.Count == 0)
+            {
+                throw new ArgumentNullException($"{name} Event source has no storage provider.");
+            }
+            for (int i = 0; i < storageList.Count; i++)
+            {
+                EventStorageInfo storage = storageList[i];
+                if (storage.Tables == null || storage.Tables.Count == 0)
+                {
+                    throw new ArgumentNullException($"{name} Event source does not have a corresponding storage table.");
+                }
+                storage.Storage = this._serviceProvider.GetRequiredServiceByName<IEventStorage>(storage.Provider);
+            }
+            return storageList;
         }
-        /// <summary>
-        /// 获取事件源所有存储表名，调用分表策略进行分表。
-        /// </summary>
-        /// <returns></returns>
-        private async Task<List<string>> GetEventTableNameList(long? createTime)
+
+        public async Task<IStateStorage> GetStateStorage(string name, StorageType storageType, string stateKey)
+        {
+            if (storageType == StorageType.EventSource)
+            {
+                throw new ArgumentNullException("The EventSource store cannot be used with IStateStorage , please call GetEventStorage to get IEventStorage for storage.");
+            }
+            string storageProvider = string.Empty;
+            if (this._storageSharding != null)
+            {
+                storageProvider = await this._storageSharding.GetProvider(name, storageType, stateKey);
+            }
+            else
+            {
+                storageProvider = this._options.StorageProvider;
+            }
+            if (string.IsNullOrEmpty(storageProvider))
+            {
+                throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
+            }
+            return this._serviceProvider.GetRequiredServiceByName<IStateStorage>(storageProvider);
+        }
+
+        public async Task<string> GetTable(string name, StorageType storageType, string stateKey)
+        {
+            string storageTableName = string.Empty;
+            if (this._storageSharding != null)
+            {
+                storageTableName = await this._storageSharding.GetTable(name, storageType, stateKey);
+            }
+            else
+            {
+                storageTableName = name;
+            }
+            if (string.IsNullOrEmpty(storageTableName))
+            {
+                throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
+            }
+            return StorageTableNameBuild.BuildTableName(storageTableName, storageType);
+        }
+
+        public async Task<List<string>> GetTableList(string name, StorageType storageType, string stateKey, long? createTime)
         {
             List<string> tables = new List<string>();
-            if (this._eventStorageSharding != null)
+            if (this._storageSharding != null)
             {
-                tables = await this._eventStorageSharding.GetTableList(this.Options.EventSourceName, StorageType.EventSource, this.StateId.ToString(), createTime);
-                if (tables == null || tables.Count == 0)
-                {
-                    throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
-                }
+                tables = await this._storageSharding.GetTableList(name, storageType, stateKey, createTime);
             }
             else
             {
-                tables.Add(this.Options.EventSourceName);
+                if (!string.IsNullOrEmpty(name))
+                    tables.Add(name);
             }
-            return tables.Select(f => StorageTableNameBuild.BuildEventTableName(f)).ToList();
-        }
-        /// <summary>
-        /// Get a event sourcing  snapshot storage provider
-        /// </summary>
-        /// <returns></returns>
-        private async Task<IStateStorage> GetSnapshotStorageProvider()
-        {
-            string storageProvider = string.Empty;
-            if (!string.IsNullOrEmpty(this.Options.SnapshotOptions.ShardingStrategy))
+            if (tables == null || tables.Count == 0)
             {
-                this._snapshotStorageSharding = this._serviceProvider.GetRequiredServiceByName<IStorageSharding>(this.Options.SnapshotOptions.ShardingStrategy);
-                storageProvider = await this._snapshotStorageSharding.GetProvider(this.Options.EventSourceName, StorageType.EventSourceSnapshot, this.StateId.ToString());
-                if (string.IsNullOrEmpty(storageProvider))
-                {
-                    throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
-                }
+                throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
             }
-            else
-            {
-                storageProvider = this.Options.SnapshotOptions.StorageProvider;
-            }
-
-            var sp = this._storageFactory.GetStateStorage(storageProvider);
-            return sp;
-        }
-        /// <summary>
-        /// Get a event sourcing  storage provider
-        /// </summary>
-        /// <returns></returns>
-        private async Task<IEventStorage> GetEventStorageProvider()
-        {
-            string storageProvider = string.Empty;
-            if (!string.IsNullOrEmpty(this.Options.StorageOptions.ShardingStrategy))
-            {
-                this._eventStorageSharding = this._serviceProvider.GetRequiredServiceByName<IStorageSharding>(this.Options.StorageOptions.ShardingStrategy);
-                storageProvider = await this._eventStorageSharding.GetProvider(this.Options.EventSourceName, StorageType.EventSource, this.StateId.ToString());
-                if (string.IsNullOrEmpty(storageProvider))
-                {
-                    throw new ArgumentNullException("Get storage table name from IStorageSharding cannot be empty");
-                }
-            }
-            else
-            {
-                storageProvider = this.Options.SnapshotOptions.StorageProvider;
-            }
-            var sp = this._storageFactory.GetEventStorage(storageProvider);
-            return sp;
+            return tables.Select(f => StorageTableNameBuild.BuildTableName(f, storageType)).ToList();
         }
 
-        Task<IEventStorage> IStorageFactory.GetEventStorage(string eventSourceName, string stateKey)
+        private IStorageSharding GetStorageSharding()
         {
-            throw new NotImplementedException();
-        }
-
-        Task<IList<IEventStorage>> IStorageFactory.GetEventStorageList(string eventSourceName)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task<IStateStorage> IStorageFactory.GetSnapshotStorage(string eventSourceName, string stateKey)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task<IStateStorage> IStorageFactory.GetStateStorage(string eventProcessorName, string stateKey)
-        {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(this._options.ShardingStrategy))
+                return null;
+            return this._serviceProvider.GetRequiredServiceByName<IStorageSharding>(this._options.ShardingStrategy);
         }
     }
 }
