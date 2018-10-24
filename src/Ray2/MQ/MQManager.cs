@@ -2,6 +2,7 @@
 using Orleans.Runtime;
 using Ray2.Configuration;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,12 +23,12 @@ namespace Ray2.MQ
             return this.Start();
         }
 
-        public async Task Start()
+        public async Task Start(IList<EventSubscribeInfo> subscribeList)
         {
-            foreach (var config in RayConfig.MQSubscribes)
+            foreach (var s in subscribeList)
             {
-                var provider = this.serviceProvider.GetServiceByName<IEventSubscriber>(config.MQProvider);
-                await provider.Subscribe(new EventSubscribeInfo(config));
+                var provider = this.serviceProvider.GetServiceByName<IEventSubscriber>(s.MQProvider);
+                await provider.Subscribe(s);
             }
         }
     }

@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.Extensions.Logging;
+using System.Runtime.Serialization;
 
 namespace Ray2
 {
@@ -18,18 +16,22 @@ namespace Ray2
         /// <summary>
         /// State Id
         /// </summary>
+        [DataMember(Order = 1)]
         public virtual TStateKey StateId { get; set; }
         /// <summary>
         /// State version number
         /// </summary>
+        [DataMember(Order = 2)]
         public virtual long Version { get; private set; } = 0;
         /// <summary>
         /// Event time corresponding to the status version number
         /// </summary>
+        [DataMember(Order = 3)]
         public virtual long VersionTime { get; private set; }
         /// <summary>
         /// State type fullname
         /// </summary>
+        [DataMember(Order = 4)]
         public virtual string TypeCode { get; }
         /// <summary>
         /// next version no

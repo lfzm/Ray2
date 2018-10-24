@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Orleans.Runtime;
 using Ray2.Configuration;
 using System;
@@ -9,38 +10,32 @@ namespace Ray2.MQ
 {
     public class MQPublisher : IMQPublisher
     {
-        private readonly ILogger logger;
-        private readonly IServiceProvider serviceProvider;
-        private IEventPublisher publisher;
-        private EventPublishOptions config;
-        public MQPublisher(ILogger logger, IServiceProvider serviceProvider)
+        private readonly ILogger _logger;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly EventPublishOptions _options;
+        private readonly IEventPublisher _publisher;
+        public MQPublisher(IServiceProvider serviceProvider, EventPublishOptions options)
         {
-            this.logger = logger;
-            this.serviceProvider = serviceProvider;
-        }
-
-        public void Injection(EventPublishOptions config)
-        {
-            this.config = config;
-            this.publisher = this.serviceProvider.GetRequiredServiceByName<IEventPublisher>(config.MQProvider);
+            this._options = options;
+            this._serviceProvider = serviceProvider;
+            this._logger = this._serviceProvider.GetRequiredService<ILogger<MQPublisher>>();
+            this._publisher = this._serviceProvider.GetRequiredServiceByName<IEventPublisher>(options.MQProvider);
         }
 
         public Task<bool> Publish(IEvent @event)
         {
             try
             {
-                if (this.config == null)
-                    return Task.FromResult(false);
                 var message = new EventPublishMessage()
                 {
                     Event = @event,
                     TypeCode = @event.TypeCode
                 };
-                return this.publisher.Publish(config.Topic, message);
+                return this._publisher.Publish(_options.Topic, message);
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, @event.ToString());
+                this._logger.LogError(ex, @event.ToString());
                 return Task.FromResult(false);
             }
         }
@@ -49,8 +44,6 @@ namespace Ray2.MQ
         {
             try
             {
-                if (this.config == null)
-                    return Task.FromResult(false);
                 List<EventPublishMessage> messages = new List<EventPublishMessage>();
                 foreach (var e in events)
                 {
@@ -61,11 +54,11 @@ namespace Ray2.MQ
                     };
                     messages.Add(message);
                 }
-                return this.publisher.Publish(config.Topic, messages);
+                return this._publisher.Publish(_options.Topic, messages);
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "A lot of publish errors");
+                this._logger.LogError(ex, "A lot of publish errors");
                 return Task.FromResult(false);
             }
         }

@@ -9,21 +9,19 @@ namespace Ray2
 {
     public abstract class RayProcessor : IEventProcessor
     {
-        protected ILogger Logger { get; set; }
         private readonly IEventProcessCore _eventProcessCore;
-        private readonly IServiceProvider _serviceProvider;
-        public RayProcessor(IServiceProvider serviceProvider, ILogger logger)
+        protected readonly IServiceProvider ServiceProvider;
+        public RayProcessor(IServiceProvider serviceProvider)
         {
-            this._serviceProvider = serviceProvider;
-            this._eventProcessCore =  this._serviceProvider.GetRequiredServiceByName<IEventProcessCore>(this.GetType().FullName)
+            this.ServiceProvider = serviceProvider;
+            this._eventProcessCore = this.ServiceProvider.GetRequiredServiceByName<IEventProcessCore>(this.GetType().FullName)
                 .Init(this.OnEventProcessing).GetAwaiter().GetResult();
-            this.Logger = logger;
         }
         public Task Tell(IEvent @event)
         {
             return this._eventProcessCore.Tell(@event);
         }
-      
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract Task OnEventProcessing(IEvent @event);
 

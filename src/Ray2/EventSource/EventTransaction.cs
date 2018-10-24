@@ -27,7 +27,7 @@ namespace Ray2.EventSource
         {
             this.rayGrain = rayGrain;
             this.eventSourcing = rayGrain.eventSourcing;
-            this.mqPublisher = rayGrain.mqPublisher;
+            this.mqPublisher = rayGrain.MQPublisher;
             this.State = this.Clone(rayGrain.State);
         }
 

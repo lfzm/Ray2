@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Orleans;
+﻿using Orleans;
 using Orleans.Runtime;
 using Ray2.EventProcess;
 using Ray2.MQ;
@@ -17,18 +15,13 @@ namespace Ray2
     {
         protected TState State { get { return _eventProcessCore.ReadStateAsync().GetAwaiter().GetResult(); } }
         protected abstract TStateKey StateId { get; }
-        protected ILogger Logger { get; }
         protected IMQPublisher MQPublisher { get; private set; }
         private IEventProcessCore<TState, TStateKey> _eventProcessCore;
-        public RayProcessorGrain(ILogger logger)
-        {
-            this.Logger = logger;
-        }
         public override async Task OnActivateAsync()
         {
             this._eventProcessCore = await this.ServiceProvider.GetRequiredServiceByName<IEventProcessCore<TState, TStateKey>>(this.GetType().FullName)
                 .Init(this.StateId, this.OnEventProcessing);
-            this.MQPublisher = this.ServiceProvider.GetRequiredService<IMQPublisher>();
+            this.MQPublisher = this.ServiceProvider.GetRequiredServiceByName<IMQPublisher>(this.GetType().FullName);
             await base.OnActivateAsync();
         }
         public override async Task OnDeactivateAsync()
@@ -46,10 +39,7 @@ namespace Ray2
     }
     public abstract class RayProcessorGrain<TStateKey> : RayProcessorGrain<EventProcessState<TStateKey>, TStateKey>
     {
-        public RayProcessorGrain(ILogger logger) : base(logger)
-        {
-
-        }
+    
     }
 
 }

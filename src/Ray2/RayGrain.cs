@@ -26,7 +26,7 @@ namespace Ray2
         protected internal TState State { get; private set; }
         protected ILogger Logger { get; set; }
         internal IEventSourcing<TState, TStateKey> eventSourcing;
-        internal IMQPublisher mqPublisher;
+        internal IMQPublisher MQPublisher { get; private set; }
         private EventSourceOptions config;
         private bool IsBeginTransaction;
         private bool IsBlock;
@@ -45,7 +45,7 @@ namespace Ray2
             {
                 this.eventSourcing = await this.ServiceProvider.GetRequiredServiceByName<IEventSourcing<TState, TStateKey>>(this.GetType().FullName)
                     .Init(this.StateId);
-                this.mqPublisher = this.ServiceProvider.GetRequiredService<IMQPublisher>();
+                this.MQPublisher = this.ServiceProvider.GetRequiredServiceByName<IMQPublisher>(this.GetType().FullName);
                 this.State = await this.eventSourcing.ReadSnapshotAsync();
                 await base.OnActivateAsync();
             }
@@ -112,7 +112,7 @@ namespace Ray2
         {
             if (@event == null)
                 throw new ArgumentNullException("PublishEventAsync event cannot be empty");
-            return mqPublisher.Publish(@event);
+            return MQPublisher.Publish(@event);
         }
         /// <summary>
         /// begin transaction

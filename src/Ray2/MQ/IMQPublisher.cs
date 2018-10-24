@@ -9,7 +9,6 @@ namespace Ray2.MQ
     /// </summary>
     public interface IMQPublisher
     {
-        void Injection( EventPublishOptions config);
         Task<bool> Publish(IEvent @event);
         Task<bool> Publish(IList<IEvent> events);
     }

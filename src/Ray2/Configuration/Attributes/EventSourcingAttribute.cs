@@ -11,10 +11,9 @@ namespace Ray2
     {
         public string Name { get; set; }
         public string StorageProvider { get; set; }
+        public string ShardingStrategy { get; set; }
         public string MQProvider { get; set; }
-        public bool IsTableSharding { get; set; }
-        public int ShardingTableCount { get; set; }
-        public string SnapshotName { get; set; }
+        public string MQTopic { get; set; }
         public SnapshotType SnapshotType { get; set; } = SnapshotType.Asynchronous;
     }
 }

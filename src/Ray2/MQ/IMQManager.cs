@@ -1,13 +1,15 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Ray2.MQ
 {
     public interface IMQManager
     {
         /// <summary>
-        /// start MQ
+        /// Start mq subscription
         /// </summary>
+        /// <param name="subscribeList"></param>
         /// <returns></returns>
-        Task Start();
+        Task Start(IList<EventSubscribeInfo> subscribeList);
     }
 }
