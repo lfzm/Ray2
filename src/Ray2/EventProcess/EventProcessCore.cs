@@ -226,7 +226,9 @@ namespace Ray2.EventProcess
         {
             var eventSourceOptions = this._serviceProvider.GetRequiredServiceByName<EventSourceOptions>(this.Options.EventSourceName);
             var logger = this._serviceProvider.GetRequiredService<ILogger<EventSourcing>>();
-            return new EventSourcing(this._serviceProvider, eventSourceOptions, logger);
+            var es= new EventSourcing(this._serviceProvider,  logger);
+            es.Options = eventSourceOptions;
+            return es;
         }
     }
 }

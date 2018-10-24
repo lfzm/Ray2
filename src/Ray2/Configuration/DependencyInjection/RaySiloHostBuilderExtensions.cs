@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Orleans.Hosting;
+using Orleans.Runtime;
 using Ray2;
+using Ray2.EventProcess;
 using Ray2.EventSource;
 using Ray2.MQ;
 using System;
@@ -36,9 +38,7 @@ namespace Microsoft.Extensions.DependencyInjection
         internal static IServiceCollection AddRay(this IServiceCollection services, IConfiguration configuration, Action<IRayBuilder> builder)
         {
             services.AddTransient(typeof(IEventSourcing<,>), typeof(EventSourcing<,>));
-            services.AddTransient(typeof(IEventTraceability<,>), typeof(IEventTraceability<,>));
-            services.AddTransient<IMQPublisher, MQPublisher>();
-            services.AddTransient<IEventProcessDispatch, EventProcessDispatch>();
+            services.AddTransient(typeof(IEventProcessCore<,>), typeof(EventProcessCore<,>));
 
             var build = new RayBuilder(services, configuration);
             if (builder == null)

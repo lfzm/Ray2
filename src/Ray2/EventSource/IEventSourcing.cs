@@ -11,8 +11,8 @@ namespace Ray2.EventSource
     /// </summary>
     public interface IEventSourcing
     {
+        EventSourceOptions Options { get; }
         Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel);
-
         Task ClearSnapshotAsync(string stateId);
     }
 

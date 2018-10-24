@@ -10,21 +10,22 @@ namespace Ray2.EventSource
 {
     public class EventSourcing<TState, TStateKey> : EventSourcing, IEventSourcing<TState, TStateKey> where TState : IState<TStateKey>, new()
     {
-        protected readonly IStorageFactory _storageFactory;
+        private IStorageFactory _storageFactory;
         private TStateKey StateId;
         private IEventBufferBlock _eventBufferBlock;
         private IEventStorage _eventStorage;
         private IStateStorage _snapshotStorage;
         private string SnapshotTable;
 
-        public EventSourcing(IServiceProvider serviceProvider, EventSourceOptions options, ILogger<EventSourcing<TState, TStateKey>> logger)
-            : base(serviceProvider, options, logger)
+        public EventSourcing(IServiceProvider serviceProvider, ILogger<EventSourcing<TState, TStateKey>> logger)
+            : base(serviceProvider, logger)
         {
-            this._storageFactory = new StorageFactory(this._serviceProvider, this.Options.StorageOptions);
+
         }
         public async Task<IEventSourcing<TState, TStateKey>> Init(TStateKey stateKey)
         {
             this.StateId = stateKey;
+            this._storageFactory = new StorageFactory(this._serviceProvider, this.Options.StorageOptions);
             this._eventStorage = await this._storageFactory.GetEventStorage(this.Options.EventSourceName, this.StateId.ToString());
             this._eventBufferBlock = this._serviceProvider.GetRequiredService<IEventBufferBlockFactory>().Create(this.Options.StorageOptions.StorageProvider, this.Options.EventSourceName, _eventStorage);
 
@@ -144,16 +145,15 @@ namespace Ray2.EventSource
 
     public class EventSourcing : IEventSourcing
     {
-        protected readonly EventSourceOptions Options;
         protected readonly IServiceProvider _serviceProvider;
         protected readonly ILogger _logger;
 
-        public EventSourcing(IServiceProvider serviceProvider, EventSourceOptions options, ILogger<EventSourcing> logger)
+        public EventSourcing(IServiceProvider serviceProvider, ILogger<EventSourcing> logger)
         {
-            this.Options = options;
             this._serviceProvider = serviceProvider;
             this._logger = logger;
         }
+        public EventSourceOptions Options { get; internal set; }
 
         public virtual async Task ClearSnapshotAsync(string stateId)
         {
