@@ -4,7 +4,7 @@ using Ray2.EventProcess;
 using Ray2.MQ;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-
+ 
 namespace Ray2
 {
     /// <summary>

@@ -39,6 +39,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             services.AddTransient(typeof(IEventSourcing<,>), typeof(EventSourcing<,>));
             services.AddTransient(typeof(IEventProcessCore<,>), typeof(EventProcessCore<,>));
+            services.AddTransient<IMQPublisher, MQPublisher>();
 
             var build = new RayBuilder(services, configuration);
             if (builder == null)
