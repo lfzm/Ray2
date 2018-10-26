@@ -37,14 +37,11 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns></returns>
         internal static IServiceCollection AddRay(this IServiceCollection services, IConfiguration configuration, Action<IRayBuilder> builder)
         {
-            services.AddTransient(typeof(IEventSourcing<,>), typeof(EventSourcing<,>));
-            services.AddTransient(typeof(IEventProcessCore<,>), typeof(EventProcessCore<,>));
-            services.AddTransient<IMQPublisher, MQPublisher>();
-
             var build = new RayBuilder(services, configuration);
             if (builder == null)
                 throw new RayConfigurationException("Did not inject MQ providers and Storage providers into Ray");
             builder.Invoke(build);
+         
             //Ray builder 
             build.Build();
             return services;

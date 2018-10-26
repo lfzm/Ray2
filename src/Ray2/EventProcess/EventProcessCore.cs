@@ -99,8 +99,8 @@ namespace Ray2.EventProcess
         {
             this.StateId = stateId;
             this._eventProcessor = eventProcessor;
-            this._stateStorage = await this._storageFactory.GetStateStorage(this.Options.EventProcessorName, StorageType.EventProcessState, this.StateId.ToString());
-            this.StorageTable = await _storageFactory.GetTable(this.Options.EventProcessorName, StorageType.EventProcessState, this.StateId.ToString());
+            this._stateStorage = await this._storageFactory.GetStateStorage(this.Options.ProcessorName, StorageType.EventProcessState, this.StateId.ToString());
+            this.StorageTable = await _storageFactory.GetTable(this.Options.ProcessorName, StorageType.EventProcessState, this.StateId.ToString());
             this.State = await this.ReadStateAsync();
             return this;
         }

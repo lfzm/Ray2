@@ -10,7 +10,6 @@ namespace Ray2
     {
         IServiceCollection Services { get; }
         IConfiguration Configuration { get;  }
-
         void Build();
     }
 }

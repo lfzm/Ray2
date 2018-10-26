@@ -4,7 +4,7 @@ namespace Ray2.MQ
 {
     public class EventSubscribeInfo
     {
-        public EventSubscribeInfo(SubscribeOptions config)
+        public EventSubscribeInfo(EventSubscribeOptions config)
         {
             this.Topic = config.Topic;
             this.Group = config.Group;

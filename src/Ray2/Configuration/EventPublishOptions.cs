@@ -6,7 +6,12 @@ namespace Ray2.Configuration
 {
     public class EventPublishOptions
     {
-        public string MQProvider{ get; set; }
-        public string Topic { get; set; }
+        public EventPublishOptions(string topic, string mqProvider)
+        {
+            this.Topic = topic;
+            this.MQProvider = mqProvider;
+        }
+        public string Topic { get; private set; }
+        public string MQProvider { get; private set; }
     }
 }
