@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Ray2.Configuration.Attributes;
+using Ray2.Configuration.Builder;
+using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Reflection;
 
 namespace Ray2.Configuration.Creator
 {
@@ -12,46 +14,31 @@ namespace Ray2.Configuration.Creator
             this._eventSubscribeOptionsCreator = eventSubscribeOptionsCreator;
         }
 
-        public List<EventProcessOptions> Create(Type type)
+        public EventProcessOptions Create(Type type)
         {
-            var attrs = type.GetCustomAttributes<EventSubscribeAttribute>();
-            if (attrs.Count() == 0)
+            List<EventProcessOptions> options = new List<EventProcessOptions>();
+            var attribute = type.GetCustomAttribute<EventProcessorAttribute>();
+            if (attribute == null)
             {
-                throw new Exception($"The {type.FullName} processor does not have an EventSubscribeAttribute configured.");
+                throw new Exception($"The {type.FullName} processor does not have an {nameof(EventProcessorAttribute)} configured.");
             }
-            foreach (var attr in attrs)
-            {
-                this.LoadEventProcessConfig(type, attr);
-            }
+
+            var statusOptions = this.CreateStatusOptions(attribute);
+            var eventSubscribeOptionsList = this._eventSubscribeOptionsCreator.Create(type);
+
+            return new EventProcessOptionsBuilder()
+                  .WithProcessor(attribute.Name, type)
+                  .WithEventSourceName(attribute.EventSourceName)
+                  .WithOnceProcessConfig(attribute.OnceProcessCount, attribute.OnceProcessTimeout)
+                  .WithStatusOptions(statusOptions)
+                  .WithEventSubscribeOptions(eventSubscribeOptionsList)
+                  .Build();
         }
 
-        private void LoadEventProcessConfig(Type type, EventSubscribeAttribute attr)
+        private StatusOptions CreateStatusOptions(EventProcessorAttribute attribute)
         {
-            EventProcessOptions config = new EventProcessOptions(attr, type);
-            config.Verify();  //verify event process config
-
-            if (RayConfig.EventProcessors.ContainsKey(config.ProcessorName))
-            {
-                throw new RayConfigException($"Configuring Event Processors' Name={config.ProcessorName} cannot be repeated");
-            }
-            RayConfig.EventProcessors.Add(config.ProcessorName, config);
-
-            //Inject the processor into the DI
-            if (type.BaseType == typeof(Grain))
-            {
-                this.Services.AddSingletonNamedService<IEventProcessor>(config.ProcessorName, (IServiceProvider sp, string key) =>
-                {
-                    return new EventProcessorGrainDispatch(type.FullName, sp);
-                });
-            }
-            else
-            {
-                this.Services.AddSingleton(type);
-                this.Services.AddSingletonNamedService<IEventProcessor>(config.ProcessorName, (IServiceProvider sp, string key) =>
-                {
-                    return (IEventProcessor)sp.GetRequiredService(type);
-                });
-            }
+            return new StatusOptions(attribute.StorageProvider, attribute.ShardingStrategy, attribute.StatusMode);
         }
+       
     }
 }

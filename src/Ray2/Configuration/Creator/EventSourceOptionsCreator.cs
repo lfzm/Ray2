@@ -16,7 +16,7 @@ namespace Ray2.Configuration.Creator
             var attr = type.GetCustomAttribute<EventSourcingAttribute>();
             if (attr == null)
             {
-                throw new Exception($"The {type.FullName}  does not have an EventSourcingAttribute configured.");
+                throw new Exception($"The {type.FullName}  does not have an {nameof(EventSourcingAttribute)} configured.");
             }
 
             var snapshotOptions = this.CreateSnapshotOptions(attr);

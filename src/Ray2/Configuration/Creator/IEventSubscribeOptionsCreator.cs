@@ -9,6 +9,5 @@ namespace Ray2.Configuration.Creator
     {
         IList<EventSubscribeOptions> Create(Type type);
 
-        EventSubscribeOptions Create(EventProcessorAttribute attribute);
     }
 }

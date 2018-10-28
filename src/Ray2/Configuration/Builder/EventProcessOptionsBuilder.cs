@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Orleans;
+using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Ray2.Configuration.Builder
 {
-   public class EventProcessOptionsBuilder
+    public class EventProcessOptionsBuilder
     {
         private string _processorName;
         private string _processorFullName;
@@ -13,12 +13,21 @@ namespace Ray2.Configuration.Builder
         private TimeSpan _onceProcessTimeout;
         private StatusOptions _statusOptions;
         private IList<EventSubscribeOptions> _eventSubscribeOptions;
+        private ProcessorType _processorType;
 
-        public EventProcessOptionsBuilder WithProcessor(string name, Type type)
+        public EventProcessOptionsBuilder WithProcessor(string name,  Type type)
         {
             this._processorName = name;
             this._processorFullName = type.FullName;
-            return this;
+            if (type.BaseType == typeof(Grain))
+            {
+                _processorType = ProcessorType.GrainProcessor;
+            }
+            else
+            {
+                _processorType = ProcessorType.SimpleProcessor;
+            }
+                return this;
         }
 
         public EventProcessOptionsBuilder WithEventSourceName(string name)
@@ -48,7 +57,7 @@ namespace Ray2.Configuration.Builder
 
         public EventProcessOptions Build()
         {
-            return new EventProcessOptions(_processorName, _processorFullName, _eventSourceName, _onceProcessCount, _onceProcessTimeout, _statusOptions, _eventSubscribeOptions);
+            return new EventProcessOptions(_processorName, _processorFullName, _processorType, _eventSourceName, _onceProcessCount, _onceProcessTimeout, _statusOptions, _eventSubscribeOptions);
         }
     }
 }

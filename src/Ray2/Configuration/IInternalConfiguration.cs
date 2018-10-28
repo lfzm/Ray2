@@ -74,5 +74,10 @@ namespace Ray2.Configuration
         /// <param name="eventProcessor">event processor</param>
         /// <returns></returns>
         EventPublishOptions GetEventPublishOptions(IEventProcessor eventProcessor);
+        /// <summary>
+        /// Get all event publishing configurations
+        /// </summary>
+        /// <returns></returns>
+        IList<EventPublishOptions> GetEventPublishOptionsList();
     }
 }

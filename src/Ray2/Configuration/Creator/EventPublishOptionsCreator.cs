@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Reflection;
 
 namespace Ray2.Configuration.Creator
 {
@@ -8,7 +7,12 @@ namespace Ray2.Configuration.Creator
     {
         public EventPublishOptions Create(Type type)
         {
-            throw new NotImplementedException();
+            var attribute = type.GetCustomAttribute<EventPublishAttribute>();
+            if (attribute == null)
+            {
+                return null;
+            }
+            return new EventPublishOptions(attribute.MQTopic, attribute.MQProvider, type.FullName);
         }
     }
 }

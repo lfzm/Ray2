@@ -95,6 +95,11 @@ namespace Ray2.Configuration
             }
         }
 
+        public IList<EventPublishOptions> GetEventPublishOptionsList()
+        {
+            return _eventPublishOptions.Values.ToList();
+        }
+
         public EventSourceOptions GetEventSourceOptions(string name)
         {
             if (_eventSourceOptions.TryGetValue(name, out EventSourceOptions options))
@@ -124,6 +129,6 @@ namespace Ray2.Configuration
             return _eventSourceOptions.Values.ToList();
         }
 
-
+       
     }
 }

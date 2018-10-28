@@ -8,7 +8,7 @@ namespace Ray2.MQ
         {
             this.Topic = config.Topic;
             this.Group = config.Group;
-            this.MQProvider = config.ProviderName;
+            this.MQProvider = config.MQProvider;
         }
         public string MQProvider { get; set; }
         public string Topic { get; set; }

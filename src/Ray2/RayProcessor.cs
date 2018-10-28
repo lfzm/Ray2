@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Orleans.Runtime;
+﻿using Orleans.Runtime;
 using Ray2.EventProcess;
 using System;
 using System.Runtime.CompilerServices;

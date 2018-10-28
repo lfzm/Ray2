@@ -33,7 +33,6 @@ namespace Ray2
         {
             return this._eventProcessCore.Tell(@event);
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract Task OnEventProcessing(IEvent @event);
     }

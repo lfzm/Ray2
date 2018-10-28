@@ -10,6 +10,7 @@ namespace Ray2
     {
         public string Topic { get; set; }
         public string MQProvider { get; set; }
-    
+        public string Group { get; set; }
     }
+
 }

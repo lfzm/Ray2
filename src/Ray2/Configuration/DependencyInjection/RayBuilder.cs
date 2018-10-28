@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Ray2.Configuration;
-using Ray2.Configuration.Builder;
 using Ray2.Configuration.Creator;
 using Ray2.Configuration.Validator;
 using Ray2.EventProcess;
@@ -43,7 +42,11 @@ namespace Ray2
             this.Services.AddSingleton<IEventPublishOptionsCreator, EventPublishOptionsCreator>();
             this.Services.AddSingleton<IEventSubscribeOptionsCreator, EventSubscribeOptionsCreator>();
 
-            this.Services.AddSingleton<IInternalConfigurationValidator,InternalConfigurationVaildator>();
+            this.Services.AddSingleton<IInternalConfigurationValidator,InternalConfigurationFluentVaildator>();
+            this.Services.AddSingleton<EventProcessOptionsFluentVaildator>();
+            this.Services.AddSingleton<EventPublishOptionsFluentVaildator>();
+            this.Services.AddSingleton<EventSourceOptionsFluentVaildator>();
+            this.Services.AddSingleton<EventSubscribeOptionsFluentVaildator>();
         }
 
         private void AddInternalConfiguration()

@@ -5,6 +5,6 @@ namespace Ray2.Configuration.Creator
 {
     public interface IEventProcessOptionsCreator
     {
-        List<EventProcessOptions> Create(Type type);
+        EventProcessOptions Create(Type type);
     }
 }
