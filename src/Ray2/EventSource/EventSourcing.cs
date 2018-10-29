@@ -36,7 +36,6 @@ namespace Ray2.EventSource
                 this._snapshotStorage = await snapshotStorageFactory.GetStateStorage(this.Options.EventSourceName, StorageType.EventSourceSnapshot, this.StateId.ToString());
                 this.SnapshotTable = await snapshotStorageFactory.GetTable(this.Options.EventSourceName, StorageType.EventSourceSnapshot, this.StateId.ToString());
             }
-
             return this;
         }
         public async Task<bool> SaveAsync(IEvent<TStateKey> @event)

@@ -18,7 +18,6 @@ namespace Ray2.Configuration
         public string ProcessorName { get; private set; }
         public string EventSourceName { get; private set; }
         public string ProcessorFullName { get; private set; }
-
         public ProcessorType ProcessorType { get; private set; }
         public int OnceProcessCount { get; private set; }
         public TimeSpan OnceProcessTimeout { get; private set; }

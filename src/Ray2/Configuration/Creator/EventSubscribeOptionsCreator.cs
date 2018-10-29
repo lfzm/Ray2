@@ -12,7 +12,7 @@ namespace Ray2.Configuration.Creator
         {
             IList<EventSubscribeOptions> optionsList = new List<EventSubscribeOptions>();
             var attribute = type.GetCustomAttribute<EventProcessorAttribute>();
-            var options = this.CreateEventSubscribeOptions(attribute);
+            var options = this.CreateEventSubscribeOptions(type.FullName,attribute);
             optionsList.Add(options);
 
             var attributes = type.GetCustomAttributes<EventSubscribeAttribute>();
@@ -21,20 +21,20 @@ namespace Ray2.Configuration.Creator
 
             foreach (var attr in attributes)
             {
-                options = this.CreateEventSubscribeOptions(attr);
+                options = this.CreateEventSubscribeOptions(type.FullName, attr);
                 optionsList.Add(options);
             }
             return optionsList;
         }
 
 
-        private EventSubscribeOptions CreateEventSubscribeOptions(EventSubscribeAttribute attribute)
+        private EventSubscribeOptions CreateEventSubscribeOptions(string fullName,EventSubscribeAttribute attribute)
         {
-            return new EventSubscribeOptions(attribute.MQProvider, attribute.Topic, attribute.Group);
+            return new EventSubscribeOptions(attribute.MQProvider, attribute.Topic, attribute.Group, fullName);
         }
-        private EventSubscribeOptions CreateEventSubscribeOptions(EventProcessorAttribute attribute)
+        private EventSubscribeOptions CreateEventSubscribeOptions(string fullName, EventProcessorAttribute attribute)
         {
-            return new EventSubscribeOptions(attribute.MQProvider, attribute.MQTopic, attribute.Name);
+            return new EventSubscribeOptions(attribute.MQProvider, attribute.MQTopic, attribute.Name, fullName);
         }
     }
 }

@@ -30,7 +30,9 @@ namespace Ray2
         private void AddCoreServices()
         {
             this.Services.AddTransient(typeof(IEventSourcing<,>), typeof(EventSourcing<,>));
+            this.Services.AddTransient<IEventSourcing,EventSourcing>();
             this.Services.AddTransient(typeof(IEventProcessCore<,>), typeof(EventProcessCore<,>));
+            this.Services.AddTransient<IEventProcessCore, EventProcessCore>();
             this.Services.AddTransient<IMQPublisher, MQPublisher>();
         }
 
@@ -47,6 +49,7 @@ namespace Ray2
             this.Services.AddSingleton<EventPublishOptionsFluentVaildator>();
             this.Services.AddSingleton<EventSourceOptionsFluentVaildator>();
             this.Services.AddSingleton<EventSubscribeOptionsFluentVaildator>();
+            
         }
 
         private void AddInternalConfiguration()
