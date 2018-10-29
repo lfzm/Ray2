@@ -1,8 +1,5 @@
 ﻿using FluentValidation;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Ray2.Configuration.Validator
@@ -48,13 +45,12 @@ namespace Ray2.Configuration.Validator
         public async Task IsValid(InternalConfiguration configuration)
         {
             var validateResult = await ValidateAsync(configuration);
-
             if (validateResult.IsValid)
             {
                 return;
             }
             var error = validateResult.Errors.Single();
-            throw new Exception("Ray configuration error : " + error.ErrorMessage);
+            throw new RayConfigurationException("Ray configuration error : " + error.ErrorMessage);
         }
 
 

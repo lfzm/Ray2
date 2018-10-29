@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Orleans.Hosting;
-using Orleans.Runtime;
 using Ray2;
-using Ray2.EventProcess;
-using Ray2.EventSource;
+using Ray2.Configuration.Validator;
 using Ray2.MQ;
 using System;
 

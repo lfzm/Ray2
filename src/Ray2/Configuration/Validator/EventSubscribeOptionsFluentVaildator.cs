@@ -18,7 +18,7 @@ namespace Ray2.Configuration.Validator
 
             base.RuleFor(x => x.MQProvider)
                 .Must(this.HaveMQProviderRegistered)
-                .WithMessage("{PropertyValue} MQ provider is not injected into the DI system");
+                .WithMessage("{PropertyValue} MQ provider is not injected into the Ray");
 
             base.RuleFor(x => x.Topic)
                 .NotEmpty()

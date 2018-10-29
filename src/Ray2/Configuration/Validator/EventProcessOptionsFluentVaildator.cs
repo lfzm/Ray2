@@ -2,9 +2,7 @@
 using Orleans.Runtime;
 using Ray2.Storage;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Ray2.Configuration.Validator
 {
@@ -38,13 +36,13 @@ namespace Ray2.Configuration.Validator
             {
                 base.RuleFor(x => x.StatusOptions.ShardingStrategy)
                     .Must(this.HavaShardingStrategyRegistered)
-                    .WithMessage("{PropertyValue} IStorageSharding is not injected into the DI system");
+                    .WithMessage("{PropertyValue} IStorageSharding is not injected into the Ray");
             });
             base.When(x => !string.IsNullOrEmpty(x.StatusOptions.StorageProvider), () =>
             {
                 base.RuleFor(x => x.StatusOptions.StorageProvider)
                     .Must(this.HavaStateStorageProviderRegistered)
-                    .WithMessage("{PropertyValue} IEventStorage provider is not injected into the DI system");
+                    .WithMessage("{PropertyValue} IEventStorage provider is not injected into the Ray");
             });
 
             base.RuleFor(x => x.SubscribeOptions.Count())
