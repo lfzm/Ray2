@@ -4,7 +4,7 @@ using Ray2.EventProcess;
 using Ray2.MQ;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
- 
+
 namespace Ray2
 {
     /// <summary>
@@ -13,13 +13,13 @@ namespace Ray2
     public abstract class RayProcessorGrain<TState, TStateKey> : Grain, IEventProcessor
            where TState : IState<TStateKey>, new()
     {
+        private IEventProcessCore<TState, TStateKey> _eventProcessCore;
         protected TState State { get { return _eventProcessCore.ReadStateAsync().GetAwaiter().GetResult(); } }
         protected abstract TStateKey StateId { get; }
         protected IMQPublisher MQPublisher { get; private set; }
-        private IEventProcessCore<TState, TStateKey> _eventProcessCore;
         public override async Task OnActivateAsync()
         {
-            this._eventProcessCore = await this.ServiceProvider.GetRequiredServiceByName<IEventProcessCore<TState, TStateKey>>(this.GetType().FullName)
+            this._eventProcessCore = await this.ServiceProvider.GetEventProcessCore<TState, TStateKey>(this)
                 .Init(this.StateId, this.OnEventProcessing);
             this.MQPublisher = this.ServiceProvider.GetRequiredServiceByName<IMQPublisher>(this.GetType().FullName);
             await base.OnActivateAsync();

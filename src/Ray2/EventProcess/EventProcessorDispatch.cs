@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Orleans.Runtime;
-using Ray2.EventSource;
 using Ray2.MQ;
 using System;
 using System.Threading.Tasks;

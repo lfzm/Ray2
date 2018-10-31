@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Ray2.Configuration;
+using System;
 using System.Threading.Tasks;
 
 namespace Ray2.EventProcess
@@ -8,8 +7,8 @@ namespace Ray2.EventProcess
     using EventProcessor = Func<IEvent, Task>;
     public interface IEventProcessCore
     {
+        EventProcessOptions Options { get; set; }
         Task<IEventProcessCore> Init(EventProcessor eventProcessor);
-
         Task Tell(IEvent @event);
     }
 

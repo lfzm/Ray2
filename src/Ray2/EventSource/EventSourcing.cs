@@ -152,7 +152,7 @@ namespace Ray2.EventSource
             this._serviceProvider = serviceProvider;
             this._logger = logger;
         }
-        public EventSourceOptions Options { get; internal set; }
+        public EventSourceOptions Options { get;  set; }
 
         public virtual async Task ClearSnapshotAsync(string stateId)
         {

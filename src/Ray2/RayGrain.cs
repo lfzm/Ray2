@@ -1,19 +1,13 @@
-﻿using Orleans;
+﻿using Microsoft.Extensions.Logging;
+using Orleans;
+using Orleans.Runtime;
+using Ray2.Configuration;
+using Ray2.EventSource;
+using Ray2.MQ;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Ray2.EventSource;
-using Microsoft.Extensions.Logging;
-using System.Runtime.ExceptionServices;
-using Ray2.Storage;
-using Newtonsoft.Json;
-using Ray2.Configuration;
-using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
-using Ray2.MQ;
-using Orleans.Runtime;
+using System.Threading.Tasks;
 
 namespace Ray2
 {
@@ -43,7 +37,7 @@ namespace Ray2
         {
             try
             {
-                this.eventSourcing = await this.ServiceProvider.GetRequiredServiceByName<IEventSourcing<TState, TStateKey>>(this.GetType().FullName)
+                this.eventSourcing = await this.ServiceProvider.GetEventSourcing<TState, TStateKey>(this)
                     .Init(this.StateId);
                 this.MQPublisher = this.ServiceProvider.GetRequiredServiceByName<IMQPublisher>(this.GetType().FullName);
                 this.State = await this.eventSourcing.ReadSnapshotAsync();

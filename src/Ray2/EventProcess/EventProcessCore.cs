@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Orleans.Runtime;
+﻿using Microsoft.Extensions.Logging;
 using Ray2.Configuration;
 using Ray2.EventSource;
 using Ray2.Storage;
@@ -14,22 +12,21 @@ using System.Threading.Tasks.Dataflow;
 namespace Ray2.EventProcess
 {
     using EventProcessor = Func<IEvent, Task>;
-
     public class EventProcessCore : IEventProcessCore
     {
         protected readonly ILogger _logger;
         protected readonly IEventProcessBufferBlock _eventProcessBufferBlock;
         protected readonly IServiceProvider _serviceProvider;
-        protected readonly EventProcessOptions Options;
         protected EventProcessor _eventProcessor;
+        public EventProcessOptions Options { get;  set; }
 
-        public EventProcessCore(IServiceProvider serviceProvider, EventProcessOptions options, ILogger<EventProcessCore> logger)
+        public EventProcessCore(IServiceProvider serviceProvider, ILogger<EventProcessCore> logger)
         {
             this._serviceProvider = serviceProvider;
             this._logger = logger;
-            this.Options = options;
             this._eventProcessBufferBlock = new EventProcessBufferBlock(this.TriggerEventProcessing);
         }
+
         public Task<IEventProcessCore> Init(EventProcessor eventProcessor)
         {
             this._eventProcessor = eventProcessor;
@@ -77,30 +74,30 @@ namespace Ray2.EventProcess
                 this._logger.LogError(ex, "event process failed");
             }
         }
+
     }
 
     public class EventProcessCore<TState, TStateKey> : EventProcessCore, IEventProcessCore<TState, TStateKey>
            where TState : IState<TStateKey>, new()
     {
-        private readonly IStorageFactory _storageFactory;
         private readonly IEventSourcing _eventSourcing;
         private TState State;
         private TStateKey StateId;
         private IStateStorage _stateStorage;
         private string StorageTable;
-        public EventProcessCore(IServiceProvider serviceProvider, EventProcessOptions options, ILogger<EventProcessCore<TState, TStateKey>> logger)
-            : base(serviceProvider, options, logger)
+        public EventProcessCore(IServiceProvider serviceProvider, ILogger<EventProcessCore<TState, TStateKey>> logger)
+            : base(serviceProvider, logger)
         {
-            this._eventSourcing = this.GetEventSourcing();
-            this._storageFactory = new StorageFactory(this._serviceProvider, options.StatusOptions);
+            this._eventSourcing = serviceProvider.GetEventSourcing(this.Options.EventSourceName);
         }
 
         public async Task<IEventProcessCore<TState, TStateKey>> Init(TStateKey stateId, EventProcessor eventProcessor)
         {
             this.StateId = stateId;
             this._eventProcessor = eventProcessor;
-            this._stateStorage = await this._storageFactory.GetStateStorage(this.Options.ProcessorName, StorageType.EventProcessState, this.StateId.ToString());
-            this.StorageTable = await _storageFactory.GetTable(this.Options.ProcessorName, StorageType.EventProcessState, this.StateId.ToString());
+            var storageFactory = new StorageFactory(this._serviceProvider, this.Options.StatusOptions);
+            this._stateStorage = await storageFactory.GetStateStorage(this.Options.ProcessorName, StorageType.EventProcessState, this.StateId.ToString());
+            this.StorageTable = await storageFactory.GetTable(this.Options.ProcessorName, StorageType.EventProcessState, this.StateId.ToString());
             this.State = await this.ReadStateAsync();
             return this;
         }
@@ -222,13 +219,6 @@ namespace Ray2.EventProcess
         {
             return this._stateStorage.DeleteAsync(this.StorageTable, this.StateId);
         }
-        private IEventSourcing GetEventSourcing()
-        {
-            var eventSourceOptions = this._serviceProvider.GetRequiredServiceByName<EventSourceOptions>(this.Options.EventSourceName);
-            var logger = this._serviceProvider.GetRequiredService<ILogger<EventSourcing>>();
-            var es= new EventSourcing(this._serviceProvider,  logger);
-            es.Options = eventSourceOptions;
-            return es;
-        }
+      
     }
 }

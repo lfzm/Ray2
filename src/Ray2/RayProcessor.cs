@@ -1,5 +1,4 @@
-﻿using Orleans.Runtime;
-using Ray2.EventProcess;
+﻿using Ray2.EventProcess;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -13,8 +12,7 @@ namespace Ray2
         public RayProcessor(IServiceProvider serviceProvider)
         {
             this.ServiceProvider = serviceProvider;
-            this._eventProcessCore = this.ServiceProvider.GetRequiredServiceByName<IEventProcessCore>(this.GetType().FullName)
-                .Init(this.OnEventProcessing).GetAwaiter().GetResult();
+            this._eventProcessCore = this.ServiceProvider.GetEventProcessCore(this).Init(this.OnEventProcessing).GetAwaiter().GetResult();
         }
         public Task Tell(IEvent @event)
         {

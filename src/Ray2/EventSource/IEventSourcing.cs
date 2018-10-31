@@ -1,6 +1,5 @@
 ﻿using Ray2.Configuration;
 using Ray2.Storage;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -11,7 +10,7 @@ namespace Ray2.EventSource
     /// </summary>
     public interface IEventSourcing
     {
-        EventSourceOptions Options { get; }
+        EventSourceOptions Options { get; set; }
         Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel);
         Task ClearSnapshotAsync(string stateId);
     }
