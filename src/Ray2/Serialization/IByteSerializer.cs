@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 
-namespace Ray2.PostgreSQL.Serialization
+namespace Ray2.Serialization
 {
-    public interface ISerializer
+   public interface IByteSerializer
     {
         T Deserialize<T>(byte[] bytes);
         object Deserialize(Type type, byte[] bytes);

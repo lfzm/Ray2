@@ -6,6 +6,7 @@ using Ray2.Configuration.Validator;
 using Ray2.EventProcess;
 using Ray2.EventSource;
 using Ray2.MQ;
+using Ray2.Serialization;
 
 namespace Ray2
 {
@@ -34,6 +35,9 @@ namespace Ray2
             this.Services.AddTransient(typeof(IEventProcessCore<,>), typeof(EventProcessCore<,>));
             this.Services.AddTransient<IEventProcessCore, EventProcessCore>();
             this.Services.AddTransient<IMQPublisher, MQPublisher>();
+
+            this.Services.AddTransient<IStringSerializer, JsonSerializer>();
+            this.Services.AddTransient<IByteSerializer, ProtobufSerializer>();
         }
 
         private void AddConfigurationServices()

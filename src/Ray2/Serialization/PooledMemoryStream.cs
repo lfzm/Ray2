@@ -1,4 +1,4 @@
-﻿namespace Ray2.PostgreSQL.Serialization
+﻿namespace Ray2.Serialization
 {
     using System;
     using System.IO;
