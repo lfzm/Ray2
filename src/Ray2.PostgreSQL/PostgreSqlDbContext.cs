@@ -4,13 +4,11 @@ using Ray2.PostgreSQL.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Ray2.PostgreSQL
 {
-    public class PostgreSqlDbContext : IPostgreSqlDbContext
+    public class PostgreSqlDbContext:IDisposable
     {
         private readonly NpgsqlConnection dbConnection;
         private readonly PostgreSqlOptions options;

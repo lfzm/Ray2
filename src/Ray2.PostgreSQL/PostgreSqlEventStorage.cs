@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NpgsqlTypes;
-using Ray2.EventSources;
-using Ray2.PostgreSQL.Serialization;
+using Ray2.Configuration;
+using Ray2.EventSource;
+using Ray2.PostgreSQL.Configuration;
+using Ray2.Serialization;
 using Ray2.Storage;
 using System;
 using System.Collections.Concurrent;
@@ -16,17 +18,24 @@ namespace Ray2.PostgreSQL
     public class PostgreSqlEventStorage : IEventStorage
     {
         private readonly ConcurrentDictionary<string, string> sqlDict = new ConcurrentDictionary<string, string>();
-        private readonly IServiceProvider sp;
-        private readonly ILogger logger;
-        public PostgreSqlEventStorage(ILogger<PostgreSqlStatusStorage> logger, IServiceProvider sp)
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ISerializer _serializer;
+        private readonly IInternalConfiguration _internalConfiguration;
+        private readonly ILogger _logger;
+        private readonly PostgreSqlOptions _options;
+
+        public PostgreSqlEventStorage(IServiceProvider serviceProvider, PostgreSqlOptions options)
         {
-            this.logger = logger;
-            this.sp = sp;
+            this._serviceProvider = serviceProvider;
+            this._logger = serviceProvider.GetRequiredService<ILogger<PostgreSqlStatusStorage>>();
+            this._serializer = serviceProvider.GetRequiredService<ISerializer>();
+            this._internalConfiguration = serviceProvider.GetRequiredService<IInternalConfiguration>();
+            this._options = options;
         }
         public Task<List<EventModel>> GetListAsync(string storageTableName, EventQueryModel query)
         {
             var list = new List<EventModel>(query.Limit);
-            using (var conn = sp.GetRequiredService<IPostgreSqlDbContext>())
+            using (var conn = this.GetDbContext())
             {
                 StringBuilder sql = new StringBuilder($"COPY(SELECT typecode,dataJson,dataBinary,version from {storageTableName} WHERE version > '{query.StartVersion}'");
                 if (!string.IsNullOrEmpty(query.StateId))
@@ -41,33 +50,40 @@ namespace Ray2.PostgreSQL
 
                 using (var reader = conn.BeginBinaryExport(sql.ToString()))
                 {
-                    using (var serializer = sp.GetRequiredService<IEventSerializer>())
+                    while (reader.StartRow() != -1)
                     {
-                        while (reader.StartRow() != -1)
-                        {
-                            string typeCode = reader.Read<string>(NpgsqlDbType.Varchar);
-                            var dataJson = reader.Read<string>(NpgsqlDbType.Varchar);
-                            byte[] dataBytes = reader.Read<byte[]>(NpgsqlDbType.Bytea);
-                            long version = reader.Read<Int64>(NpgsqlDbType.Bigint);
+                        string typeCode = reader.Read<string>(NpgsqlDbType.Varchar);
+                        var dataJson = reader.Read<string>(NpgsqlDbType.Varchar);
+                        byte[] dataBytes = reader.Read<byte[]>(NpgsqlDbType.Bytea);
+                        long version = reader.Read<Int64>(NpgsqlDbType.Bigint);
 
+                        //Get event type
+                        if (this._internalConfiguration.GetEvenType(typeCode, out Type type))
+                        {
                             object data;
                             if (dataBytes.Length > 0)
-                                data = serializer.Deserialize(typeCode, dataBytes);
+                                data = _serializer.Deserialize(type, dataBytes);
                             else if (!string.IsNullOrEmpty(dataJson))
-                                data = serializer.Deserialize(typeCode, dataJson);
+                                data = _serializer.Deserialize(type, dataJson);
                             else
                                 throw new ArgumentNullException($"{typeCode}-{version} No event data");
+
                             EventModel eventModel = new EventModel(data, typeCode, version);
                             list.Add(eventModel);
                         }
+                        else
+                        {
+                            this._logger.LogWarning($"{typeCode} event type not exist to IInternalConfiguration");
+                        }
                     }
+
                 }
             }
             return Task.FromResult(list);
         }
         public async Task SaveAsync(List<EventBufferWrap> wrapList)
         {
-            using (var db = sp.GetRequiredService<IPostgreSqlDbContext>())
+            using (var db = this.GetDbContext())
             {
                 await db.OpenAsync();
                 try
@@ -80,43 +96,40 @@ namespace Ray2.PostgreSQL
                 }
             }
         }
-        public Task BinarySaveAsync(IPostgreSqlDbContext db, List<EventBufferWrap> events)
+        public Task BinarySaveAsync(PostgreSqlDbContext db, List<EventBufferWrap> events)
         {
             IEventStorageModel storageModel = events.First().Value;
             string tableName = storageModel.StorageTableName;
             string sql = this.GetEventBinaryInsertSql(tableName);
             using (var writer = db.BeginBinaryImport(sql))
             {
-                using (var serializer = sp.GetRequiredService<IEventSerializer>())
+                foreach (var e in events)
                 {
-                    foreach (var e in events)
+                    //Single event store
+                    if (e.Value is EventSingleStorageModel model)
                     {
-                        //Single event store
-                        if (e.Value is EventSingleStorageModel model)
+                        (byte[] bytes, string json) = this.Serialize(model.Event);
+                        writer.StartRow();
+                        writer.Write(model.StateId.ToString(), NpgsqlDbType.Varchar);
+                        writer.Write(model.Event.RelationEvent, NpgsqlDbType.Varchar);
+                        writer.Write(model.Event.TypeCode, NpgsqlDbType.Varchar);
+                        writer.Write(json, NpgsqlDbType.Varchar);
+                        writer.Write(bytes, NpgsqlDbType.Bytea);
+                        writer.Write(model.Event.Version, NpgsqlDbType.Bigint);
+                    }
+                    //Bulk event storage
+                    else if (e.Value is EventCollectionStorageModel models)
+                    {
+                        foreach (var m in models.Events)
                         {
-                            (byte[] bytes, string json) = serializer.Serialize(model.Event);
+                            (byte[] bytes, string json) = this.Serialize(m.Event);
                             writer.StartRow();
-                            writer.Write(model.StateId.ToString(), NpgsqlDbType.Varchar);
-                            writer.Write(model.Event.RelationEvent, NpgsqlDbType.Varchar);
-                            writer.Write(model.Event.TypeCode, NpgsqlDbType.Varchar);
-                            writer.Write(json, NpgsqlDbType.Varchar);
-                            writer.Write(bytes, NpgsqlDbType.Bytea);
-                            writer.Write(model.Event.Version, NpgsqlDbType.Bigint);
-                        }
-                        //Bulk event storage
-                        else if (e.Value is EventCollectionStorageModel models)
-                        {
-                            foreach (var m in models.Events)
-                            {
-                                (byte[] bytes, string json) = serializer.Serialize(m.Event);
-                                writer.StartRow();
-                                writer.Write(m.StateId.ToString(), NpgsqlDbType.Varchar);
-                                writer.Write(m.Event.RelationEvent, NpgsqlDbType.Varchar);
-                                writer.Write(m.Event.TypeCode, NpgsqlDbType.Varchar);
-                                writer.Write(bytes, NpgsqlDbType.Varchar);
-                                writer.Write(json, NpgsqlDbType.Bytea);
-                                writer.Write(m.Event.Version, NpgsqlDbType.Bigint);
-                            }
+                            writer.Write(m.StateId.ToString(), NpgsqlDbType.Varchar);
+                            writer.Write(m.Event.RelationEvent, NpgsqlDbType.Varchar);
+                            writer.Write(m.Event.TypeCode, NpgsqlDbType.Varchar);
+                            writer.Write(bytes, NpgsqlDbType.Varchar);
+                            writer.Write(json, NpgsqlDbType.Bytea);
+                            writer.Write(m.Event.Version, NpgsqlDbType.Bigint);
                         }
                     }
                 }
@@ -125,62 +138,58 @@ namespace Ray2.PostgreSQL
             events.ForEach(wrap => wrap.TaskSource.TrySetResult(true));
             return Task.CompletedTask;
         }
-        public async Task SqlSaveAsync(IPostgreSqlDbContext db, List<EventBufferWrap> events)
+        public async Task SqlSaveAsync(PostgreSqlDbContext db, List<EventBufferWrap> events)
         {
             IEventStorageModel storageModel = events.First().Value;
             string tableName = storageModel.StorageTableName;
             using (var trans = db.BeginTransaction())
             {
-                using (var serializer = sp.GetRequiredService<IEventSerializer>())
+                try
                 {
-                    try
+                    string sql = this.GetEventSqlInsertSql(tableName);
+                    foreach (var e in events)
                     {
-                        string sql = this.GetEventSqlInsertSql(tableName);
-                        foreach (var e in events)
+                        //Single event store
+                        if (e.Value is EventSingleStorageModel model)
                         {
-                            //Single event store
-                            if (e.Value is EventSingleStorageModel model)
+                            (byte[] bytes, string json) = this.Serialize(model.Event);
+                            e.Result = await db.ExecuteAsync(sql, new
                             {
-                                (byte[] bytes, string json) = serializer.Serialize(model.Event);
+                                model.StateId,
+                                model.Event.RelationEvent,
+                                model.Event.TypeCode,
+                                DataJson = json,
+                                DataBinary = bytes,
+                                model.Event.Version
+                            }, trans) > 0;
+                        }
+                        //Bulk event storage
+                        else if (e.Value is EventCollectionStorageModel models)
+                        {
+                            foreach (var m in models.Events)
+                            {
+                                (byte[] bytes, string json) = this.Serialize(m.Event);
                                 e.Result = await db.ExecuteAsync(sql, new
                                 {
-                                    model.StateId,
-                                    model.Event.RelationEvent,
-                                    model.Event.TypeCode,
+                                    m.StateId,
+                                    m.Event.RelationEvent,
+                                    m.Event.TypeCode,
                                     DataJson = json,
                                     DataBinary = bytes,
-                                    model.Event.Version
+                                    m.Event.Version
                                 }, trans) > 0;
                             }
-                            //Bulk event storage
-                            else if (e.Value is EventCollectionStorageModel models)
-                            {
-                                foreach (var m in models.Events)
-                                {
-                                    (byte[] bytes, string json) = serializer.Serialize(m.Event);
-                                    e.Result = await db.ExecuteAsync(sql, new
-                                    {
-                                        m.StateId,
-                                        m.Event.RelationEvent,
-                                        m.Event.TypeCode,
-                                        DataJson = json,
-                                        DataBinary = bytes,
-                                        m.Event.Version
-                                    }, trans) > 0;
-                                }
-                            }
                         }
-                        trans.Commit();
-                        events.ForEach(wrap => wrap.TaskSource.TrySetResult(wrap.Result));
                     }
-                    catch (Exception ex)
-                    {
-                        trans.Rollback();
-                        events.ForEach(wrap => wrap.TaskSource.TrySetException(ex));
-                    }
+                    trans.Commit();
+                    events.ForEach(wrap => wrap.TaskSource.TrySetResult(wrap.Result));
+                }
+                catch (Exception ex)
+                {
+                    trans.Rollback();
+                    events.ForEach(wrap => wrap.TaskSource.TrySetException(ex));
                 }
             }
-
         }
         /// <summary>
         ///  Sql mode insert time data sql
@@ -207,5 +216,25 @@ namespace Ray2.PostgreSQL
             });
         }
 
+        private PostgreSqlDbContext GetDbContext()
+        {
+            return new PostgreSqlDbContext(this._options);
+        }
+
+        private (byte[], string) Serialize(IEvent @event)
+        {
+            string str = String.Empty;
+            byte[] bytes = new byte[0];
+            if (this._options.SerializationType == SerializationType.Byte)
+            {
+                bytes = this._serializer.Serialize(@event);
+            }
+            else
+            {
+                str = this._serializer.SerializeString(@event);
+            }
+
+            return ValueTuple.Create<byte[], string>(new byte[0], str);
+        }
     }
 }

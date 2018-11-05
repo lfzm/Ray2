@@ -7,7 +7,6 @@ namespace Ray2.Storage
 {
     public interface IStateStorage: IStorage
     {
-        Task CreateTable(string tableName);
         Task<TState> ReadAsync<TState>(string tableName, object stateId) where TState : IState, new();
         Task<bool> InsertAsync<TState>(string tableName, object stateId, TState state) where TState : IState, new();
         Task<bool> UpdateAsync<TState>(string tableName, object stateId, TState state) where TState : IState, new();

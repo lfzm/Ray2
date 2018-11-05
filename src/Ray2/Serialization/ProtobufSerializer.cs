@@ -1,5 +1,4 @@
-﻿using ProtoBuf;
-using System;
+﻿using System;
 using System.Text;
 
 namespace Ray2.Serialization
@@ -11,7 +10,7 @@ namespace Ray2.Serialization
         {
             using (PooledMemoryStream ms = new PooledMemoryStream(bytes))
             {
-                return Serializer.Deserialize<T>(ms);
+                return ProtoBuf.Serializer.Deserialize<T>(ms);
             }
         }
 
@@ -19,7 +18,7 @@ namespace Ray2.Serialization
         {
             using (PooledMemoryStream ms = new PooledMemoryStream(bytes))
             {
-                return Serializer.Deserialize(type, ms);
+                return ProtoBuf.Serializer.Deserialize(type, ms);
             }
         }
 
@@ -27,7 +26,7 @@ namespace Ray2.Serialization
         {
             using (PooledMemoryStream ms = new PooledMemoryStream())
             {
-                Serializer.Serialize(ms, instance);
+                ProtoBuf.Serializer.Serialize(ms, instance);
                 return ms.ToArray();
             }
         }
