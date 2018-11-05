@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NpgsqlTypes;
-using Ray2.EventSources;
+using Ray2.EventSource;
 using Ray2.PostgreSQL.Serialization;
 using Ray2.Storage;
 using System;

@@ -38,6 +38,8 @@ namespace Ray2
 
             this.Services.AddTransient<IStringSerializer, JsonSerializer>();
             this.Services.AddTransient<IByteSerializer, ProtobufSerializer>();
+            this.Services.AddTransient<ISerializer, Serializer>();
+
         }
 
         private void AddConfigurationServices()
