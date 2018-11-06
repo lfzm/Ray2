@@ -1,51 +1,54 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Ray2.PostgreSQL.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace Ray2.PostgreSQL
 {
-    internal class PostgreSqlTableStorage : IPostgreSqlTableStorage
+    public class PostgreSqlTableStorage : IPostgreSqlTableStorage
     {
         private readonly ConcurrentDictionary<string, string> tableCache = new ConcurrentDictionary<string, string>();
         private readonly IServiceProvider _serviceProvider;
         private readonly PostgreSqlOptions _options;
         private readonly ILogger _logger;
         private readonly string ProviderName;
+
         public PostgreSqlTableStorage(IServiceProvider serviceProvider, string name)
         {
             this.ProviderName = name;
             this._serviceProvider = serviceProvider;
             this._logger = serviceProvider.GetRequiredService<ILogger<PostgreSqlTableStorage>>();
-            this._options = serviceProvider.GetRequiredService<OptionsManager<PostgreSqlOptions>>().Get(name);
+            this._options = serviceProvider.GetRequiredService<IOptionsSnapshot<PostgreSqlOptions>>().Get(name);
         }
-        public Task CreateEventTable(string name)
+
+        public Task CreateEventTable(string name, object stateId)
         {
             tableCache.GetOrAdd(name, (n) =>
             {
-                this.CreateTable(CreateEventTableSql).GetAwaiter().GetResult();
+                this.CreateTable(n, stateId, CreateEventTableSql).GetAwaiter().GetResult();
                 return n;
             });
             return Task.CompletedTask;
         }
 
-        public Task CreateStateTable(string name)
+        public Task CreateStateTable(string name, object stateId)
         {
             tableCache.GetOrAdd(name, (n) =>
             {
-                this.CreateTable(CreateStateTableSql).GetAwaiter().GetResult();
+                this.CreateTable(n, stateId, CreateStateTableSql).GetAwaiter().GetResult();
                 return n;
             });
             return Task.CompletedTask;
         }
 
-        private async Task CreateTable(string sql)
+        private async Task CreateTable(string name, object stateId, string sql)
         {
             try
             {
+                int stateIdLength = this.GetStateIdLength(stateId);
+                sql = string.Format(sql, name, stateIdLength);
                 using (var db = PostgreSqlDbContext.Create(this._options))
                 {
                     await db.ExecuteAsync(sql);
@@ -53,9 +56,27 @@ namespace Ray2.PostgreSQL
             }
             catch (Exception ex)
             {
-                this._logger.LogError(ex, "Initialization failed to create ray_ShardingTableList table");
+                this._logger.LogError(ex, $"[{ProviderName}] Creating table {name} failed");
                 throw ex;
             }
+        }
+
+        private int GetStateIdLength(object stateId)
+        {
+            if (stateId.GetType() == typeof(int))
+            {
+                return 11;
+            }
+            else if (stateId.GetType() == typeof(long))
+            {
+                return 20;
+            }
+            else if (stateId.GetType() == typeof(string))
+            {
+                return 32;
+            }
+            else
+                return 32;
         }
 
         private const string CreateStateTableSql = @"
@@ -73,6 +94,6 @@ namespace Ray2.PostgreSQL
                         Version int8 NOT NULL,
                         constraint {0}_id_unique UNIQUE(StateId,TypeCode,RelationEvent)
                     ) WITH (OIDS=FALSE);
-                    CREATE UNIQUE INDEX {0}_Event_State_Version ON {0} USING btree(StateId, Version);";
+                    CREATE UNIQUE INDEX IF NOT EXISTS {0}_Event_State_Version ON {0} USING btree(StateId, Version);";
     }
 }

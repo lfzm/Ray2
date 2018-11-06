@@ -13,5 +13,7 @@ namespace Ray2.Storage
         /// </summary>
         /// <returns></returns>
         int Count();
+
+        object GetStateId();
     }
 }

@@ -1,6 +1,5 @@
 ﻿using Dapper;
 using Npgsql;
-using Ray2.PostgreSQL.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data;

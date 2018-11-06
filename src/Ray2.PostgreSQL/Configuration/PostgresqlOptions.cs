@@ -1,6 +1,6 @@
 ﻿using Ray2.Serialization;
 
-namespace Ray2.PostgreSQL.Configuration
+namespace Ray2.PostgreSQL
 {
     public class PostgreSqlOptions
     {

@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 using NpgsqlTypes;
 using Ray2.Configuration;
 using Ray2.EventSource;
-using Ray2.PostgreSQL.Configuration;
 using Ray2.Serialization;
 using Ray2.Storage;
 using System;
@@ -35,7 +34,7 @@ namespace Ray2.PostgreSQL
             this._tableStorage = serviceProvider.GetRequiredService<IPostgreSqlTableStorage>();
             this._serializer = serviceProvider.GetRequiredService<ISerializer>();
             this._internalConfiguration = serviceProvider.GetRequiredService<IInternalConfiguration>();
-            this._options = serviceProvider.GetRequiredService<OptionsManager<PostgreSqlOptions>>().Get(name);
+            this._options = serviceProvider.GetRequiredService<IOptionsSnapshot<PostgreSqlOptions>>().Get(name);
         }
         public Task<List<EventModel>> GetListAsync(string storageTableName, EventQueryModel query)
         {
@@ -91,18 +90,19 @@ namespace Ray2.PostgreSQL
             using (var db = PostgreSqlDbContext.Create(this._options))
             {
                 await db.OpenAsync();
-                Dictionary<string, List<EventBufferWrap>> events = wrapList.GroupBy(f => f.Value.StorageTableName).ToDictionary(x => x.Key, v => v.ToList());
-                foreach (var key in events.Keys)
+                Dictionary<string, List<EventBufferWrap>> eventsList = wrapList.GroupBy(f => f.Value.StorageTableName).ToDictionary(x => x.Key, v => v.ToList());
+                foreach (var key in eventsList.Keys)
                 {
                     //First add a judgment table to see if it exists
-                    await this._tableStorage.CreateEventTable(key);
+                    var events = eventsList[key];
+                    await this._tableStorage.CreateEventTable(key, events.First().Value.GetStateId());
                     try
                     {
-                        await this.BinarySaveAsync(db, key, events[key]);
+                        await this.BinarySaveAsync(db, key, events);
                     }
                     catch
                     {
-                        await this.SqlSaveAsync(db, key, events[key]);
+                        await this.SqlSaveAsync(db, key, events);
                     }
                 }
             }

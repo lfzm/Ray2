@@ -2,7 +2,6 @@
 using Orleans.Runtime;
 using Ray2;
 using Ray2.PostgreSQL;
-using Ray2.PostgreSQL.Configuration;
 using Ray2.Storage;
 using System;
 

@@ -7,7 +7,7 @@ namespace Ray2.Storage
 {
     public class EventSingleStorageModel : EventStorageModel, IEventStorageModel
     {
-        public EventSingleStorageModel(string stateId, IEvent @event, string eventSourceName, string storageTableName) : base(stateId, @event)
+        public EventSingleStorageModel(object stateId, IEvent @event, string eventSourceName, string storageTableName) : base(stateId, @event)
         {
             this.EventSourceName = eventSourceName;
             this.StorageTableName = storageTableName;
@@ -18,6 +18,11 @@ namespace Ray2.Storage
         public int Count()
         {
             return 1;
+        }
+
+        public object GetStateId()
+        {
+            return this.StateId;
         }
     }
 }

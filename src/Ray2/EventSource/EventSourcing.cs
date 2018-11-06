@@ -42,7 +42,7 @@ namespace Ray2.EventSource
         {
             //Sharding processing
             string storageTableName = await this.GetEventTableName();
-            EventSingleStorageModel storageModel = new EventSingleStorageModel(@event.StateId.ToString(), @event, this.Options.EventSourceName, storageTableName);
+            EventSingleStorageModel storageModel = new EventSingleStorageModel(@event.StateId, @event, this.Options.EventSourceName, storageTableName);
             return await this._eventBufferBlock.SendAsync(storageModel);
         }
         public async Task<bool> SaveAsync(IList<IEvent<TStateKey>> events)
@@ -53,7 +53,7 @@ namespace Ray2.EventSource
             EventCollectionStorageModel storageModel = new EventCollectionStorageModel(this.Options.EventSourceName, storageTableName);
             foreach (var e in events)
             {
-                EventStorageModel eventModel = new EventStorageModel(e.StateId.ToString(), e);
+                EventStorageModel eventModel = new EventStorageModel(e.StateId, e);
                 storageModel.Events.Add(eventModel);
             }
             return await this._eventBufferBlock.SendAsync(storageModel);

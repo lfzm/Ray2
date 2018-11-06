@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Ray2.PostgreSQL.Configuration;
 using Ray2.Serialization;
 using Ray2.Storage;
 using System;
@@ -23,7 +22,7 @@ namespace Ray2.PostgreSQL
             this.ProviderName = name;
             this._serviceProvider = serviceProvider;
             this._tableStorage = serviceProvider.GetRequiredService<IPostgreSqlTableStorage>();
-            this._options = serviceProvider.GetRequiredService<OptionsManager<PostgreSqlOptions>>().Get(name);
+            this._options = serviceProvider.GetRequiredService<IOptionsSnapshot<PostgreSqlOptions>>().Get(name);
             this._logger = serviceProvider.GetRequiredService<ILogger<PostgreSqlStateStorage>>();
             this._serializer = serviceProvider.GetRequiredService<ISerializer>();
         }
@@ -38,7 +37,7 @@ namespace Ray2.PostgreSQL
         }
         public async Task<bool> InsertAsync<TState>(string tableName, object stateId, TState state) where TState : IState, new()
         {
-            await this._tableStorage.CreateStateTable(tableName);
+            await this._tableStorage.CreateStateTable(tableName, stateId);
             using (var db = PostgreSqlDbContext.Create(this._options))
             {
                 string sql = $"INSERT into {tableName}(stateid,data)VALUES(@StateId,@Data)";

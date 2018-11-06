@@ -20,7 +20,7 @@ namespace Ray2.MQ
 
         public Task Execute(CancellationToken cancellationToken)
         {
-            return this.Start();
+            return this.Start(null);
         }
 
         public async Task Start(IList<EventSubscribeInfo> subscribeList)

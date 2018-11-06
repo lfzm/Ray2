@@ -1,9 +1,10 @@
 ﻿using Ray2.Configuration;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Ray2.Storage
 {
-    public class EventCollectionStorageModel: IEventStorageModel
+    public class EventCollectionStorageModel : IEventStorageModel
     {
         public EventCollectionStorageModel(string eventSourceName, string storageTableName)
         {
@@ -17,6 +18,10 @@ namespace Ray2.Storage
         public int Count()
         {
             return this.Events.Count;
+        }
+        public object GetStateId()
+        {
+            return Events.First().StateId;
         }
     }
 }
