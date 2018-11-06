@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Ray2.PostgreSQL
 {
-    public class PostgreSqlDbContext:IDisposable
+    public class PostgreSqlDbContext : IDisposable
     {
         private readonly NpgsqlConnection dbConnection;
         private readonly PostgreSqlOptions options;
@@ -18,7 +18,6 @@ namespace Ray2.PostgreSQL
             dbConnection = new NpgsqlConnection();
             dbConnection.ConnectionString = this.options.ConnectionString;
         }
-
         public IDbTransaction BeginTransaction()
         {
             return this.dbConnection.BeginTransaction();
@@ -55,6 +54,10 @@ namespace Ray2.PostgreSQL
         public Task<IEnumerable<T>> QueryAsync<T>(string sql, object param = null, IDbTransaction transaction = null, int? commandTimeout = null, CommandType? commandType = null)
         {
             return this.dbConnection.QueryAsync<T>(sql, param, transaction, commandTimeout, commandType);
+        }
+        public static PostgreSqlDbContext Create(PostgreSqlOptions options)
+        {
+            return new PostgreSqlDbContext(options);
         }
     }
 }

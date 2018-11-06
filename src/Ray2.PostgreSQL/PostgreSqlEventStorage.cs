@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NpgsqlTypes;
 using Ray2.Configuration;
 using Ray2.EventSource;
@@ -22,22 +23,26 @@ namespace Ray2.PostgreSQL
         private readonly ISerializer _serializer;
         private readonly IInternalConfiguration _internalConfiguration;
         private readonly ILogger _logger;
+        private readonly IPostgreSqlTableStorage _tableStorage;
         private readonly PostgreSqlOptions _options;
+        private readonly string ProviderName;
 
-        public PostgreSqlEventStorage(IServiceProvider serviceProvider, PostgreSqlOptions options)
+        public PostgreSqlEventStorage(IServiceProvider serviceProvider, string name)
         {
+            this.ProviderName = name;
             this._serviceProvider = serviceProvider;
-            this._logger = serviceProvider.GetRequiredService<ILogger<PostgreSqlStatusStorage>>();
+            this._logger = serviceProvider.GetRequiredService<ILogger<PostgreSqlStateStorage>>();
+            this._tableStorage = serviceProvider.GetRequiredService<IPostgreSqlTableStorage>();
             this._serializer = serviceProvider.GetRequiredService<ISerializer>();
             this._internalConfiguration = serviceProvider.GetRequiredService<IInternalConfiguration>();
-            this._options = options;
+            this._options = serviceProvider.GetRequiredService<OptionsManager<PostgreSqlOptions>>().Get(name);
         }
         public Task<List<EventModel>> GetListAsync(string storageTableName, EventQueryModel query)
         {
             var list = new List<EventModel>(query.Limit);
-            using (var conn = this.GetDbContext())
+            using (var conn = PostgreSqlDbContext.Create(this._options))
             {
-                StringBuilder sql = new StringBuilder($"COPY(SELECT typecode,dataJson,dataBinary,version from {storageTableName} WHERE version > '{query.StartVersion}'");
+                StringBuilder sql = new StringBuilder($"COPY (SELECT typecode,dataJson,dataBinary,version from {storageTableName} WHERE version > '{query.StartVersion}'");
                 if (!string.IsNullOrEmpty(query.StateId))
                     sql.Append($" and stateid = '{query.StateId}'");
                 if (query.StartVersion > 0)
@@ -83,23 +88,27 @@ namespace Ray2.PostgreSQL
         }
         public async Task SaveAsync(List<EventBufferWrap> wrapList)
         {
-            using (var db = this.GetDbContext())
+            using (var db = PostgreSqlDbContext.Create(this._options))
             {
                 await db.OpenAsync();
-                try
+                Dictionary<string, List<EventBufferWrap>> events = wrapList.GroupBy(f => f.Value.StorageTableName).ToDictionary(x => x.Key, v => v.ToList());
+                foreach (var key in events.Keys)
                 {
-                    await this.BinarySaveAsync(db, wrapList);
-                }
-                catch
-                {
-                    await this.SqlSaveAsync(db, wrapList);
+                    //First add a judgment table to see if it exists
+                    await this._tableStorage.CreateEventTable(key);
+                    try
+                    {
+                        await this.BinarySaveAsync(db, key, events[key]);
+                    }
+                    catch
+                    {
+                        await this.SqlSaveAsync(db, key, events[key]);
+                    }
                 }
             }
         }
-        public Task BinarySaveAsync(PostgreSqlDbContext db, List<EventBufferWrap> events)
+        public Task BinarySaveAsync(PostgreSqlDbContext db, string tableName, List<EventBufferWrap> events)
         {
-            IEventStorageModel storageModel = events.First().Value;
-            string tableName = storageModel.StorageTableName;
             string sql = this.GetEventBinaryInsertSql(tableName);
             using (var writer = db.BeginBinaryImport(sql))
             {
@@ -138,10 +147,8 @@ namespace Ray2.PostgreSQL
             events.ForEach(wrap => wrap.TaskSource.TrySetResult(true));
             return Task.CompletedTask;
         }
-        public async Task SqlSaveAsync(PostgreSqlDbContext db, List<EventBufferWrap> events)
+        public async Task SqlSaveAsync(PostgreSqlDbContext db, string tableName, List<EventBufferWrap> events)
         {
-            IEventStorageModel storageModel = events.First().Value;
-            string tableName = storageModel.StorageTableName;
             using (var trans = db.BeginTransaction())
             {
                 try
@@ -212,14 +219,10 @@ namespace Ray2.PostgreSQL
         {
             return sqlDict.GetOrAdd("EventBinaryInsertSql_" + tableName, (key) =>
             {
-                return $"copy {tableName}(stateid,relationevent,typecode,datajson,databinary,version) FROM STDIN (FORMAT BINARY)";
+                return $"COPY {tableName}(stateid,relationevent,typecode,datajson,databinary,version) FROM STDIN (FORMAT BINARY)";
             });
         }
 
-        private PostgreSqlDbContext GetDbContext()
-        {
-            return new PostgreSqlDbContext(this._options);
-        }
 
         private (byte[], string) Serialize(IEvent @event)
         {

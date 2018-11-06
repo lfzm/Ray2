@@ -7,10 +7,8 @@ namespace Ray2.PostgreSQL
 {
     public interface IPostgreSqlTableStorage
     {
-        Task CreateEventTable(TableInfo tableInfo);
-        Task CreateSnapshotTable(string name);
-        Task CreateShardingTable();
-        Task<List<TableInfo>> GetEventTableList(string prefix);
-        Task<long> GetEventTableCount(string name);
+        Task CreateEventTable(string name);
+        Task CreateStateTable(string name);
+      
     }
 }
