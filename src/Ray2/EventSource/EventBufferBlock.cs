@@ -23,14 +23,14 @@ namespace Ray2.EventSource
             this.eventStorage = eventStorage;
         }
 
-        public Task<bool> SendAsync(IEventStorageModel @event)
+        public Task<bool> SendAsync(EventSingleStorageModel @event)
         {
             return Task.Run(async () =>
             {
                 var bufferWrap = new EventBufferWrap(@event);
                 await EventFlowChannel.SendAsync(bufferWrap);
                 if (isProcessing == 0)
-                     TriggerSaveEventProcess();
+                    TriggerSaveEventProcess();
                 return await bufferWrap.TaskSource.Task;
             });
         }
@@ -49,7 +49,7 @@ namespace Ray2.EventSource
                         var bufferWrapList = new List<EventBufferWrap>();
                         while (EventFlowChannel.TryReceive(out var evt))
                         {
-                            count += evt.Value.Count();
+                            count += 1;
                             bufferWrapList.Add(evt);
                             if (count >= 500) break;//Process up to 500 items at a time
                         }

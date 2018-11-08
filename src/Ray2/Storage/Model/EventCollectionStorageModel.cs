@@ -1,5 +1,4 @@
-﻿using Ray2.Configuration;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace Ray2.Storage
@@ -13,12 +12,9 @@ namespace Ray2.Storage
             this.Events = new List<EventStorageModel>();
         }
         public string EventSourceName { get; }
-        public List<EventStorageModel> Events { get; }
         public string StorageTableName { get; }
-        public int Count()
-        {
-            return this.Events.Count;
-        }
+        public List<EventStorageModel> Events { get; }
+
         public object GetStateId()
         {
             return Events.First().StateId;

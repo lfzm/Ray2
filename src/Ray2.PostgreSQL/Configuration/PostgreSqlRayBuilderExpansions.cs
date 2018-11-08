@@ -42,13 +42,13 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns></returns>
         private static IRayBuilder AddPostgreSQL(this IRayBuilder build, string name)
         {
-            build.Services.AddSingletonNamedService<IEventStorage>(name, (sp, n) =>
-            {
-                return new PostgreSqlEventStorage(sp, n);
-            });
             build.Services.AddSingletonNamedService<IStateStorage>(name, (sp, n) =>
             {
-                return new PostgreSqlStateStorage(sp, n);
+                return new PostgreSqlStateStorageDecorator(sp, n);
+            });
+            build.Services.AddSingletonNamedService<IEventStorage>(name, (sp, n) =>
+            {
+                return new PostgreSqlEventStorageDecorator(sp, n);
             });
             build.Services.AddSingletonNamedService<IPostgreSqlTableStorage>(name, (sp, n) =>
             {

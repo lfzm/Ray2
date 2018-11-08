@@ -54,6 +54,8 @@ namespace Ray2.PostgreSQL
         {
             return this.dbConnection.QueryAsync<T>(sql, param, transaction, commandTimeout, commandType);
         }
+
+       
         public static PostgreSqlDbContext Create(PostgreSqlOptions options)
         {
             return new PostgreSqlDbContext(options);

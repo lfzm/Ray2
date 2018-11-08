@@ -14,7 +14,6 @@ namespace Ray2.PostgreSQL
         private readonly PostgreSqlOptions _options;
         private readonly ILogger _logger;
         private readonly string ProviderName;
-
         public PostgreSqlTableStorage(IServiceProvider serviceProvider, string name)
         {
             this.ProviderName = name;
@@ -63,7 +62,11 @@ namespace Ray2.PostgreSQL
 
         private int GetStateIdLength(object stateId)
         {
-            if (stateId.GetType() == typeof(int))
+            if (stateId == null)
+            {
+                return 32;
+            }
+            else if (stateId.GetType() == typeof(int))
             {
                 return 11;
             }
@@ -82,6 +85,7 @@ namespace Ray2.PostgreSQL
         private const string CreateStateTableSql = @"
                     CREATE TABLE IF NOT EXISTS {0}(
                         StateId varchar({1}) NOT NULL PRIMARY KEY,
+                        DataType varchar(20) NOT NULL,  
                         Data bytea NOT NULL)";
 
         private const string CreateEventTableSql = @"
@@ -89,9 +93,10 @@ namespace Ray2.PostgreSQL
                         StateId varchar({1}) NOT NULL,
                         RelationEvent varchar(250)  NULL,
                         TypeCode varchar(100)  NOT NULL,
-                        DataJson text NULL,
-                        DataBinary bytea NULL,
+                        DataType varchar(20) NOT NULL,
+                        Data bytea NOT NULL,
                         Version int8 NOT NULL,
+                        AddTime int8 NOT NULL,
                         constraint {0}_id_unique UNIQUE(StateId,TypeCode,RelationEvent)
                     ) WITH (OIDS=FALSE);
                     CREATE UNIQUE INDEX IF NOT EXISTS {0}_Event_State_Version ON {0} USING btree(StateId, Version);";

@@ -5,7 +5,7 @@ namespace Ray2.EventSource
 {
     public interface IEventBufferBlock
     {
-        Task<bool> SendAsync(IEventStorageModel @event);
+        Task<bool> SendAsync(EventSingleStorageModel @event);
 
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Ray2.Serialization
+﻿namespace Ray2.Protobuf
 {
     using System;
     using System.IO;

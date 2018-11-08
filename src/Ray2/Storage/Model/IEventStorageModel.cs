@@ -8,11 +8,6 @@ namespace Ray2.Storage
     {
         string EventSourceName { get; }
         string StorageTableName { get; }
-        /// <summary>
-        /// storage event count
-        /// </summary>
-        /// <returns></returns>
-        int Count();
 
         object GetStateId();
     }

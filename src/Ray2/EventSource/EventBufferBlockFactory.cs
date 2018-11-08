@@ -17,7 +17,6 @@ namespace Ray2.EventSource
         {
             return EventBufferBlocks.GetOrAdd($"{storageProviderName}_{eventSourcing}", (key) =>
             {
-               
                 return new EventBufferBlock(storageProviderName, loggerFactory.CreateLogger<EventBufferBlock>(), eventStorage);
             });
         }

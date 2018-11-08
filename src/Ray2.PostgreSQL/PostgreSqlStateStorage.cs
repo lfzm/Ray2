@@ -1,67 +1,86 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orleans.Runtime;
 using Ray2.Serialization;
-using Ray2.Storage;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Ray2.PostgreSQL
 {
-    public class PostgreSqlStateStorage : IStateStorage
+    public class PostgreSqlStateStorage : IPostgreSqlStateStorage
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly ISerializer _serializer;
         private readonly ILogger _logger;
-        private readonly IPostgreSqlTableStorage _tableStorage;
         private readonly PostgreSqlOptions _options;
-        private readonly string ProviderName;
+        private readonly string providerName;
+        private readonly string tableName;
+        private string insertSql;
+        private string updateSql;
+        private string deleteSql;
+        private string selectSql;
 
-        public PostgreSqlStateStorage(IServiceProvider serviceProvider, string name)
+        public PostgreSqlStateStorage(IServiceProvider serviceProvider, PostgreSqlOptions options, string name, string tableName)
         {
-            this.ProviderName = name;
+            this.providerName = name;
+            this.tableName = tableName;
             this._serviceProvider = serviceProvider;
-            this._tableStorage = serviceProvider.GetRequiredService<IPostgreSqlTableStorage>();
             this._options = serviceProvider.GetRequiredService<IOptionsSnapshot<PostgreSqlOptions>>().Get(name);
             this._logger = serviceProvider.GetRequiredService<ILogger<PostgreSqlStateStorage>>();
-            this._serializer = serviceProvider.GetRequiredService<ISerializer>();
+            this.BuildSql(tableName);
         }
 
-        public async Task<bool> DeleteAsync(string tableName, object stateId)
+        public async Task<bool> DeleteAsync( object stateId)
         {
             using (var db = PostgreSqlDbContext.Create(this._options))
             {
-                string sql = $"DELETE FROM {tableName} where stateid=@StateId";
-                return await db.ExecuteAsync(sql, new { StateId = stateId.ToString() }) > 0;
+                return await db.ExecuteAsync(this.deleteSql, new { StateId = stateId.ToString() }) > 0;
             }
         }
-        public async Task<bool> InsertAsync<TState>(string tableName, object stateId, TState state) where TState : IState, new()
+        public async Task<bool> InsertAsync<TState>( object stateId, TState state) where TState : IState, new()
         {
-            await this._tableStorage.CreateStateTable(tableName, stateId);
             using (var db = PostgreSqlDbContext.Create(this._options))
             {
-                string sql = $"INSERT into {tableName}(stateid,data)VALUES(@StateId,@Data)";
-                var data = this._serializer.Serialize(state);
-                return await db.ExecuteAsync(sql, new { StateId = stateId.ToString(), Data = data }) > 0;
+                var data = this.GetSerializer().Serialize(state);
+                return await db.ExecuteAsync(this.insertSql, new { StateId = stateId.ToString(), Data = data, DataType = this._options.SerializationType }) > 0;
             }
         }
-        public async Task<TState> ReadAsync<TState>(string tableName, object stateId) where TState : IState, new()
+        public async Task<TState> ReadAsync<TState>( object stateId) where TState : IState, new()
         {
             using (var db = PostgreSqlDbContext.Create(this._options))
             {
-                string sql = $"select data FROM {tableName} where stateid=@StateId";
-                var data = await db.ExecuteScalarAsync<byte[]>(sql, new { StateId = stateId.ToString() });
-                return this._serializer.Deserialize<TState>(data);
+                var list = await db.QueryAsync<dynamic>(this.selectSql, new { StateId = stateId.ToString() });
+                if (list.Count() == 0)
+                {
+                    return default(TState);
+                }
+                var data = list.FirstOrDefault();
+                return this.GetSerializer(data.datatype).Deserialize<TState>(data.data);
             }
         }
-        public async Task<bool> UpdateAsync<TState>(string tableName, object stateId, TState state) where TState : IState, new()
+        public async Task<bool> UpdateAsync<TState>( object stateId, TState state) where TState : IState, new()
         {
             using (var db = PostgreSqlDbContext.Create(this._options))
             {
-                string sql = $"Update {tableName} set data=@Data where stateid=@StateId";
-                var data = this._serializer.Serialize(state);
-                return await db.ExecuteAsync(sql, new { StateId = stateId.ToString(), Data = data }) > 0;
+                var data = this.GetSerializer().Serialize(state);
+                return await db.ExecuteAsync(this.updateSql, new { StateId = stateId.ToString(), Data = data, DataType = this._options.SerializationType }) > 0;
             }
+        }
+        private ISerializer GetSerializer(string name)
+        {
+            return this._serviceProvider.GetRequiredServiceByName<ISerializer>(name);
+        }
+        private ISerializer GetSerializer()
+        {
+            return this.GetSerializer(this._options.SerializationType);
+        }
+        private void BuildSql(string tableName)
+        {
+            this.updateSql = $"Update {tableName} set data=@Data,datatype =@DataType  WHERE stateid=@StateId";
+            this.selectSql = $"SELECT data,datatype FROM {tableName} WHERE stateid=@StateId";
+            this.insertSql = $"INSERT INTO {tableName}(stateid,data,datatype) VALUES (@StateId,@Data,@DataType)";
+            this.deleteSql = $"DELETE FROM {tableName} WHERE stateid=@StateId";
         }
     }
 }

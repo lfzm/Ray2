@@ -4,11 +4,10 @@ using System.Text;
 
 namespace Ray2.Serialization
 {
-    public interface ISerializer: IByteSerializer
-    {
-        T Deserialize<T>(string json);
-        object Deserialize(Type type, string json);
-        string SerializeString(object obj);
-        string SerializeString<T>(T obj);
+    public interface ISerializer    {
+        T Deserialize<T>(byte[] bytes);
+        object Deserialize(Type type, byte[] bytes);
+        byte[] Serialize(object obj);
+        byte[] Serialize<T>(T obj);
     }
 }

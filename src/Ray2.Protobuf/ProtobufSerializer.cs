@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Ray2.Serialization;
+using System;
 using System.Text;
 
-namespace Ray2.Serialization
+namespace Ray2.Protobuf
 {
-    public class ProtobufSerializer : IByteSerializer
+    public class ProtobufSerializer : ISerializer
     {
         Encoding encoding = Encoding.UTF8;
         public T Deserialize<T>(byte[] bytes)
@@ -27,12 +28,24 @@ namespace Ray2.Serialization
             using (PooledMemoryStream ms = new PooledMemoryStream())
             {
                 ProtoBuf.Serializer.Serialize(ms, instance);
-                return ms.ToArray();
+                var data = ms.ToArray();
+                if (data.Length == 0)
+                    throw new Exception("Protobuf serialization failed, data is empty after serialization");
+                else
+                    return data;
             }
         }
         public byte[] Serialize<T>(T instance)
         {
-           return  this.Serialize(instance);
+            using (PooledMemoryStream ms = new PooledMemoryStream())
+            {
+                ProtoBuf.Serializer.Serialize(ms, instance);
+                var data = ms.ToArray();
+                if (data.Length == 0)
+                    throw new Exception("Protobuf serialization failed, data is empty after serialization");
+                else
+                    return data;
+            }
         }
     }
 }

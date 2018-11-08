@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Ray2.Storage
 {
-   public class EventModel
+    public class EventModel
     {
         public EventModel(object data, string typeCode, long version)
         {

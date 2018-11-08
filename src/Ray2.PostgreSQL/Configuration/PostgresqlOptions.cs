@@ -5,7 +5,8 @@ namespace Ray2.PostgreSQL
     public class PostgreSqlOptions
     {
         public string ConnectionString { get; set; }
-        public SerializationType SerializationType { get; set; } = SerializationType.String;
+
+        public string SerializationType { get; set; } = Ray2.SerializationType.JsonUTF8;
     }
 
 }

@@ -7,6 +7,7 @@ namespace Ray2
     /// State abstract class
     /// </summary>
     /// <typeparam name="TStateKey">State id type</typeparam>
+    [DataContract]
     public abstract class State<TStateKey> : IState<TStateKey>
     {
         public State()
@@ -39,7 +40,7 @@ namespace Ray2
         /// <returns></returns>
         public long NextVersion()
         {
-            return this.Version++;
+            return this.Version+1;
         }
         /// <summary>
         /// Play event modification status

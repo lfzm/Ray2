@@ -5,14 +5,14 @@ namespace Ray2.EventSource
 {
     public class EventBufferWrap
     {
-        public EventBufferWrap(IEventStorageModel @event)
+        public EventBufferWrap(EventSingleStorageModel @event)
         {
             this.Value = @event;
             this.TaskSource = new TaskCompletionSource<bool>();
         }
      
         public TaskCompletionSource<bool> TaskSource { get; }
-        public IEventStorageModel Value { get; }
+        public EventSingleStorageModel Value { get; }
         public bool Result { get; set; }
     }
 

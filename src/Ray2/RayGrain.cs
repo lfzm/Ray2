@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Runtime;
-using Ray2.Configuration;
 using Ray2.EventSource;
 using Ray2.MQ;
 using System;
@@ -21,7 +20,6 @@ namespace Ray2
         protected ILogger Logger { get; set; }
         internal IEventSourcing<TState, TStateKey> eventSourcing;
         internal IMQPublisher MQPublisher { get; private set; }
-        private EventSourceOptions config;
         private bool IsBeginTransaction;
         private bool IsBlock;
         protected abstract TStateKey StateId { get; }
@@ -78,7 +76,7 @@ namespace Ray2
                 try
                 {
                     //Paly state
-                    this.State.Player(@event);
+                    this.State. (@event);
                 }
                 catch (Exception ex)
                 {

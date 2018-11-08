@@ -3,8 +3,8 @@
     public  class SerializationType
     {
         /// <summary>
-        /// Json and Utf-8
+        /// Protobuf
         /// </summary>
-        public const string JsonUTF8 = "JsonUTF8";
+        public const string Protobuf = "Protobuf";
     }
 }

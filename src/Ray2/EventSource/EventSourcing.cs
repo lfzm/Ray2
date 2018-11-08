@@ -56,7 +56,7 @@ namespace Ray2.EventSource
                 EventStorageModel eventModel = new EventStorageModel(e.StateId, e);
                 storageModel.Events.Add(eventModel);
             }
-            return await this._eventBufferBlock.SendAsync(storageModel);
+            return await this._eventStorage.SaveAsync(storageModel);
         }
         private async Task<string> GetEventTableName()
         {
@@ -97,7 +97,6 @@ namespace Ray2.EventSource
             //save snapshot
             await this.SaveSnapshotAsync(state);
             return state;
-
         }
         public async Task ClearSnapshotAsync()
         {

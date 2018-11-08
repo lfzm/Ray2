@@ -1,32 +1,38 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Text;
 
 namespace Ray2.Serialization
 {
-    public class JsonSerializer : IStringSerializer
+    public class JsonSerializer : ISerializer
     {
-        public T Deserialize<T>(string json)
+        Encoding encoding = Encoding.UTF8;
+        public T Deserialize<T>(byte[] bytes)
         {
+            var json = encoding.GetString(bytes);
             if (string.IsNullOrEmpty(json))
                 return default(T);
             return JsonConvert.DeserializeObject<T>(json);
         }
 
-        public object Deserialize(Type type, string json)
+        public object Deserialize(Type type, byte[] bytes)
         {
+            var json = encoding.GetString(bytes);
+
             if (string.IsNullOrEmpty(json))
                 return null;
             return JsonConvert.DeserializeObject(json, type);
         }
-
-        public string Serialize(object obj)
+        public byte[] Serialize(object obj)
         {
-            return JsonConvert.SerializeObject(obj);
-        }
+            string json = JsonConvert.SerializeObject(obj);
+            return encoding.GetBytes(json);
+          }
 
-        public string Serialize<T>(T obj)
+        public byte[] Serialize<T>(T obj)
         {
-            return JsonConvert.SerializeObject(obj);
+            string json = JsonConvert.SerializeObject(obj);
+            return encoding.GetBytes(json);
         }
     }
 }

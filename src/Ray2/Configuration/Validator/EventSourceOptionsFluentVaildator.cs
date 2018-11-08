@@ -55,7 +55,7 @@ namespace Ray2.Configuration.Validator
 
         private bool HavaEventStorageProviderRegistered(string storageProvider)
         {
-            var provider = this.serviceProvider.GetServiceByName<IEventStorage>(storageProvider);
+            var provider = this.serviceProvider.GetServiceByName<IStateStorage>(storageProvider);
             return provider != null;
         }
 
