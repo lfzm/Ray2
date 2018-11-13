@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Orleans.Runtime;
+using Ray2.Configuration;
 using Ray2.Serialization;
 using Ray2.Storage;
 using System;
@@ -26,6 +27,7 @@ namespace Ray2.PostgreSQL.Test
                 opt.ConnectionString = Options.ConnectionString;
             });
             services.AddLogging();
+            services.AddSingleton<IInternalConfiguration, InternalConfiguration>();
             services.AddSingleton(typeof(IKeyedServiceCollection<,>), typeof(KeyedServiceCollection<,>));
             services.AddSingletonNamedService<ISerializer, JsonSerializer>(SerializationType.JsonUTF8);
             services.AddSingletonNamedService<IStateStorage>(ProviderName, (sp, n) =>

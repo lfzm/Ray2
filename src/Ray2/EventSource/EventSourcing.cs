@@ -1,10 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ray2.Configuration;
+using Ray2.Internal;
 using Ray2.Storage;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace Ray2.EventSource
 {
@@ -12,7 +15,7 @@ namespace Ray2.EventSource
     {
         private IStorageFactory _storageFactory;
         private TStateKey StateId;
-        private IEventBufferBlock _eventBufferBlock;
+        private IDataflowBufferBlock<EventBufferWrap> _eventBufferBlock;
         private IEventStorage _eventStorage;
         private IStateStorage _snapshotStorage;
         private string SnapshotTable;
@@ -20,14 +23,15 @@ namespace Ray2.EventSource
         public EventSourcing(IServiceProvider serviceProvider, ILogger<EventSourcing<TState, TStateKey>> logger)
             : base(serviceProvider, logger)
         {
-
         }
         public async Task<IEventSourcing<TState, TStateKey>> Init(TStateKey stateKey)
         {
             this.StateId = stateKey;
             this._storageFactory = new StorageFactory(this._serviceProvider, this.Options.StorageOptions);
             this._eventStorage = await this._storageFactory.GetEventStorage(this.Options.EventSourceName, this.StateId.ToString());
-            this._eventBufferBlock = this._serviceProvider.GetRequiredService<IEventBufferBlockFactory>().Create(this.Options.StorageOptions.StorageProvider, this.Options.EventSourceName, _eventStorage);
+
+            string bufferKey = "es" + this.Options.EventSourceName + this.Options.StorageOptions.StorageProvider;
+            this._eventBufferBlock = this._serviceProvider.GetRequiredService<IDataflowBufferBlockFactory>().Create<EventBufferWrap>(bufferKey, this.LazySaveAsync);
 
             //Get snapshot storage information
             if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
@@ -43,7 +47,8 @@ namespace Ray2.EventSource
             //Sharding processing
             string storageTableName = await this.GetEventTableName();
             EventSingleStorageModel storageModel = new EventSingleStorageModel(@event.StateId, @event, this.Options.EventSourceName, storageTableName);
-            return await this._eventBufferBlock.SendAsync(storageModel);
+            var bufferWrap = new EventBufferWrap(storageModel);
+            return await this._eventBufferBlock.SendAsync(bufferWrap);
         }
         public async Task<bool> SaveAsync(IList<IEvent<TStateKey>> events)
         {
@@ -57,6 +62,23 @@ namespace Ray2.EventSource
                 storageModel.Events.Add(eventModel);
             }
             return await this._eventStorage.SaveAsync(storageModel);
+        }
+        public async Task LazySaveAsync(BufferBlock<EventBufferWrap> eventBuferr)
+        {
+            var bufferWrapList = new List<EventBufferWrap>();
+            while (eventBuferr.TryReceive(out var evt))
+            {
+                bufferWrapList.Add(evt);
+                if (bufferWrapList.Count >= 500) break;//Process up to 500 items at a time
+            }
+            try
+            {
+                await _eventStorage.SaveAsync(bufferWrapList);
+            }
+            catch (Exception ex)
+            {
+                bufferWrapList.ForEach(f => f.TaskSource.SetException(ex));
+            }
         }
         private async Task<string> GetEventTableName()
         {
@@ -151,7 +173,7 @@ namespace Ray2.EventSource
             this._serviceProvider = serviceProvider;
             this._logger = logger;
         }
-        public EventSourceOptions Options { get;  set; }
+        public EventSourceOptions Options { get; set; }
 
         public virtual async Task ClearSnapshotAsync(string stateId)
         {

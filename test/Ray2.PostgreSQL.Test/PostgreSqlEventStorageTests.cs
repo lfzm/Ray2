@@ -1,35 +1,58 @@
-﻿using System;
+﻿using Ray2.EventSource;
+using Ray2.Storage;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
+using TestStack.BDDfy;
+using Orleans.Runtime;
 
 namespace Ray2.PostgreSQL.Test
 {
     public class PostgreSqlEventStorageTests
     {
+        private IServiceProvider serviceProvider;
         private PostgreSqlEventStorage storage;
         private string TableName;
+        private string EventSourceName;
+        private EventBufferWrap eventWrap;
         public PostgreSqlEventStorageTests()
         {
+            this.EventSourceName = "Test";
             this.TableName = "es_storage";
-            var sp = FakeConfig.BuildServiceProvider();
-            //storage = new PostgreSqlEventStorage(sp, FakeConfig.ProviderName);
+            this.serviceProvider = FakeConfig.BuildServiceProvider();
+            this.storage = new PostgreSqlEventStorage(serviceProvider, FakeConfig.Options, FakeConfig.ProviderName, this.TableName);
         }
 
         [Fact]
         public void should_Save_Success()
         {
+            var e = TestEvent.Create(1);
+            e.StateId = 1000;
+            EventSingleStorageModel model = new EventSingleStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
+
+            eventWrap = new EventBufferWrap(model);
+            List<EventBufferWrap> events = new List<EventBufferWrap>
+            {
+                eventWrap
+            };
+
+            this
+                .Given(f => f.Given_CreateTable())
+                .When(f => f.When_Save(events))
+                .Then(f => f.Then_Save_Sccess())
+                .BDDfy();
 
         }
 
         [Fact]
-        public void should_SQLSave_SingleSuccess()
+        public void should_SQLSave_SimpleSuccess()
         {
 
         }
 
         [Fact]
-        public void should_BinarySave_SingleSuccess()
+        public void should_BinarySave_SimpleSuccess()
         {
 
         }
@@ -84,7 +107,21 @@ namespace Ray2.PostgreSQL.Test
 
         }
 
+        private void Given_CreateTable()
+        {
+            var tableStorage = serviceProvider.GetRequiredServiceByName<IPostgreSqlTableStorage>(FakeConfig.ProviderName);
+            tableStorage.CreateEventTable(this.TableName, 1);
+        }
+        private void When_Save(List<EventBufferWrap> list)
+        {
+            this.storage.SaveAsync(list).GetAwaiter().GetResult();
+        }
 
+        private void Then_Save_Sccess()
+        {
+            var isSuccess = this.eventWrap.TaskSource.Task.GetAwaiter().GetResult();
+            Assert.True(isSuccess);
+        }
 
     }
 

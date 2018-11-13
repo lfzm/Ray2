@@ -8,6 +8,7 @@ using Ray2.EventSource;
 using Ray2.MQ;
 using Ray2.Serialization;
 using Orleans.Runtime;
+using Ray2.Internal;
 
 namespace Ray2
 {
@@ -37,6 +38,8 @@ namespace Ray2
             this.Services.AddTransient(typeof(IEventProcessCore<,>), typeof(EventProcessCore<,>));
             this.Services.AddTransient<IEventProcessCore, EventProcessCore>();
             this.Services.AddTransient<IMQPublisher, MQPublisher>();
+            this.Services.AddTransient<IDataflowBufferBlockFactory, DataflowBufferBlockFactory>();
+
             this.Services.AddSingletonNamedService<ISerializer, JsonSerializer>(SerializationType.JsonUTF8);
         }
 

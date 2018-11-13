@@ -10,6 +10,7 @@ namespace Ray2.PostgreSQL
     public interface IPostgreSqlEventStorage
     {
         Task<List<EventModel>> GetListAsync( EventQueryModel queryModel);
+        Task<EventModel> GetAsync(object stateId, long version);
         Task SaveAsync(List<EventBufferWrap> wrapList);
         Task<bool> SaveAsync(EventCollectionStorageModel eventList);
 

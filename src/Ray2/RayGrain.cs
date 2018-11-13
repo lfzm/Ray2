@@ -76,7 +76,7 @@ namespace Ray2
                 try
                 {
                     //Paly state
-                    this.State. (@event);
+                    this.State.Player(@event);
                 }
                 catch (Exception ex)
                 {

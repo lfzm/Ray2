@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Ray2.Configuration;
 using Ray2.EventSource;
+using Ray2.Internal;
 using Ray2.Storage;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ namespace Ray2.EventProcess
     public class EventProcessCore : IEventProcessCore
     {
         protected readonly ILogger _logger;
-        protected readonly IEventProcessBufferBlock _eventProcessBufferBlock;
+        protected readonly IDataflowBufferBlock<IEvent> _eventBufferBlock;
         protected readonly IServiceProvider _serviceProvider;
         protected EventProcessor _eventProcessor;
         public EventProcessOptions Options { get;  set; }
@@ -24,7 +25,7 @@ namespace Ray2.EventProcess
         {
             this._serviceProvider = serviceProvider;
             this._logger = logger;
-            this._eventProcessBufferBlock = new EventProcessBufferBlock(this.TriggerEventProcessing);
+            this._eventBufferBlock = new DataflowBufferBlock<IEvent>(this.TriggerEventProcessing);
         }
 
         public Task<IEventProcessCore> Init(EventProcessor eventProcessor)
@@ -36,7 +37,7 @@ namespace Ray2.EventProcess
 
         public Task Tell(IEvent @event)
         {
-            return this._eventProcessBufferBlock.SendAsync(@event);
+            return this._eventBufferBlock.SendAsync(@event);
         }
 
         protected virtual async Task TriggerEventProcessing(BufferBlock<IEvent> eventBuffer)
