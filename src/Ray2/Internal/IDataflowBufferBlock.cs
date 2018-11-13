@@ -9,6 +9,6 @@ namespace Ray2.Internal
 
     public interface IDataflowBufferBlock
     {
-
+        void Canceled();
     }
 }

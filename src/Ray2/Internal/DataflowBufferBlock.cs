@@ -5,22 +5,16 @@ using System.Threading.Tasks.Dataflow;
 
 namespace Ray2.Internal
 {
-    public class DataflowBufferBlock<T>:IDataflowBufferBlock<T>
+    public class DataflowBufferBlock<T> : IDataflowBufferBlock<T>
     {
         private int isProcessing = 0;
+        private CancellationToken cancellationToken;
         private readonly BufferBlock<T> dataflowChannel = new BufferBlock<T>();
         private readonly Func<BufferBlock<T>, Task> processor;
-        private readonly CancellationToken cancellationToken;
 
-        public DataflowBufferBlock(Func<BufferBlock<T>, Task> processor) 
-            : this(processor, CancellationToken.None)
+        public DataflowBufferBlock(Func<BufferBlock<T>, Task> processor)
         {
-
-        }
-
-        public DataflowBufferBlock(Func<BufferBlock<T>, Task> processor, CancellationToken token)
-        {
-            cancellationToken = token;
+            this.cancellationToken = CancellationToken.None;
             this.processor = processor;
         }
         public Task<bool> SendAsync(T t)
@@ -53,6 +47,11 @@ namespace Ray2.Internal
                 }
             }).ConfigureAwait(false);
 
+        }
+
+        public void Canceled()
+        {
+            cancellationToken = new CancellationToken(true);
         }
     }
 }

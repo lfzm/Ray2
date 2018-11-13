@@ -13,13 +13,13 @@ namespace Ray2.PostgreSQL.Test
         [DataMember(Order = 1)]
         public string Test { get; set; }
 
-        public static void  Valid(TestState state)
+        public  void  Valid(TestState state)
         {
-            Assert.Equal(state.StateId, state.StateId);
-            Assert.Equal(state.Test, state.Test);
-            Assert.Equal(state.TypeCode, state.TypeCode);
-            Assert.Equal(state.Version, state.Version);
-            Assert.Equal(state.VersionTime, state.VersionTime);
+            Assert.Equal(state.StateId, this.StateId);
+            Assert.Equal(state.Test, this.Test);
+            Assert.Equal(state.TypeCode, this.TypeCode);
+            Assert.Equal(state.Version, this.Version);
+            Assert.Equal(state.VersionTime, this.VersionTime);
         }
     }
 }
