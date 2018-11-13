@@ -8,7 +8,7 @@ namespace Ray2.EventProcess
     /// </summary>
     public interface IEventProcessor : IGrainWithGuidKey, IGrainWithIntegerKey, IGrainWithStringKey
     {
-        Task Tell(IEvent @event);
+        Task Tell(EventProccessBufferWrap eventWrap);
     }
 }
 

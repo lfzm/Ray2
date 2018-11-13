@@ -29,16 +29,16 @@ namespace Ray2
             await this._eventProcessCore.SaveStateAsync();
             await base.OnDeactivateAsync();
         }
-        public Task Tell(IEvent @event)
+        public Task Tell(EventProccessBufferWrap eventWrap)
         {
-            return this._eventProcessCore.Tell(@event);
+            return this._eventProcessCore.Tell(eventWrap);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract Task OnEventProcessing(IEvent @event);
     }
     public abstract class RayProcessorGrain<TStateKey> : RayProcessorGrain<EventProcessState<TStateKey>, TStateKey>
     {
-    
+
     }
 
 }

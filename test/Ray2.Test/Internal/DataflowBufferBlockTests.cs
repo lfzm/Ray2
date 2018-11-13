@@ -10,48 +10,41 @@ namespace Ray2.Test.Internal
 {
     public class DataflowBufferBlockTests
     {
-        private DataflowBufferBlock<TestModel> dataflowBufferBlock;
-        private TestModel Model;
+        private DataflowBufferBlock<TestDataflowWrap> dataflowBufferBlock;
+        private TestDataflowWrap Model;
         private bool IsSuccess;
 
         public DataflowBufferBlockTests()
         {
-            dataflowBufferBlock = new DataflowBufferBlock<TestModel>(this.TriggerProcessor);
+            dataflowBufferBlock = new DataflowBufferBlock<TestDataflowWrap>(this.TriggerProcessor);
         }
 
         [Fact]
         public void should_Send_Success()
         {
-            TestModel model = new TestModel { Test = "should_Send_Success" };
+            TestDataflowWrap model = new TestDataflowWrap { Test = "should_Send_Success" };
 
             this.When(f => f.WhenSendAsync(model))
-                .When(f=>f.WhenCanceledBuffer())
                 .Then(f => f.ThenSuccess(model))
                 .BDDfy();
         }
 
-        private void WhenSendAsync(TestModel model)
+        private void WhenSendAsync(TestDataflowWrap model)
         {
             IsSuccess = this.dataflowBufferBlock.SendAsync(model).GetAwaiter().GetResult();
         }
 
-
-        private void WhenCanceledBuffer()
-        {
-            Task.Delay(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
-            this.dataflowBufferBlock.Canceled();
-        }
-
-        private void ThenSuccess(TestModel model)
+        private void ThenSuccess(TestDataflowWrap model)
         {
             Assert.True(IsSuccess);
             this.Model.Valid(model);
         }
 
-        private Task TriggerProcessor(BufferBlock<TestModel> bufferBlock)
+        private Task TriggerProcessor(BufferBlock<TestDataflowWrap> bufferBlock)
         {
-            while (bufferBlock.TryReceive(out TestModel model))
+            while (bufferBlock.TryReceive(out TestDataflowWrap model))
             {
+                model.TaskSource.SetResult(true);
                 this.Model = model;
             }
             return Task.CompletedTask;

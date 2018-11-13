@@ -18,7 +18,7 @@ namespace Ray2.PostgreSQL
 {
     public class PostgreSqlEventStorage : IPostgreSqlEventStorage
     {
-        private readonly DataflowBufferBlock<EventBufferWrap> dataflowBufferBlock;
+        public readonly DataflowBufferBlock<EventStorageBufferWrap> dataflowBufferBlock;
         private readonly IServiceProvider _serviceProvider;
         private readonly IInternalConfiguration _internalConfiguration;
         private readonly ILogger _logger;
@@ -36,7 +36,7 @@ namespace Ray2.PostgreSQL
             this._serviceProvider = serviceProvider;
             this._logger = serviceProvider.GetRequiredService<ILogger<PostgreSqlStateStorage>>();
             this._internalConfiguration = serviceProvider.GetRequiredService<IInternalConfiguration>();
-            this.dataflowBufferBlock = new DataflowBufferBlock<EventBufferWrap>(this.LazySaveAsync);
+            this.dataflowBufferBlock = new DataflowBufferBlock<EventStorageBufferWrap>(this.LazySaveAsync);
             this.BuildSql(tableName);
         }
         public Task<List<EventModel>> GetListAsync(EventQueryModel query)
@@ -109,7 +109,7 @@ namespace Ray2.PostgreSQL
                 }
             }
         }
-        public async Task SaveAsync(List<EventBufferWrap> events)
+        public async Task SaveAsync(List<EventStorageBufferWrap> events)
         {
             using (var db = PostgreSqlDbContext.Create(this.options))
             {
@@ -157,7 +157,7 @@ namespace Ray2.PostgreSQL
                 writer.Complete();
             }
         }
-        public async Task LazySaveAsync(BufferBlock<EventBufferWrap> eventBuffer)
+        public async Task LazySaveAsync(BufferBlock<EventStorageBufferWrap> eventBuffer)
         {
             using (var db = PostgreSqlDbContext.Create(this.options))
             {
@@ -167,7 +167,7 @@ namespace Ray2.PostgreSQL
                 }
             }
         }
-        public async Task SqlSaveAsync(PostgreSqlDbContext db, EventBufferWrap wrap)
+        public async Task SqlSaveAsync(PostgreSqlDbContext db, EventStorageBufferWrap wrap)
         {
             try
             {

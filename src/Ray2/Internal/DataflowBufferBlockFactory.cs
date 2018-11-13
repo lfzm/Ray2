@@ -9,6 +9,7 @@ namespace Ray2.Internal
     {
         ConcurrentDictionary<string, IDataflowBufferBlock> DataflowBufferBlocks = new ConcurrentDictionary<string, IDataflowBufferBlock>();
         public IDataflowBufferBlock<T> Create<T>(string name, Func<BufferBlock<T>, Task> processor)
+              where T : IDataflowBufferWrap
         {
             return (IDataflowBufferBlock<T>)DataflowBufferBlocks.GetOrAdd(name, (key) =>
             {

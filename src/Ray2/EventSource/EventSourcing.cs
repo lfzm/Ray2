@@ -15,7 +15,7 @@ namespace Ray2.EventSource
     {
         private IStorageFactory _storageFactory;
         private TStateKey StateId;
-        private IDataflowBufferBlock<EventBufferWrap> _eventBufferBlock;
+        private IDataflowBufferBlock<EventStorageBufferWrap> _eventBufferBlock;
         private IEventStorage _eventStorage;
         private IStateStorage _snapshotStorage;
         private string SnapshotTable;
@@ -31,7 +31,7 @@ namespace Ray2.EventSource
             this._eventStorage = await this._storageFactory.GetEventStorage(this.Options.EventSourceName, this.StateId.ToString());
 
             string bufferKey = "es" + this.Options.EventSourceName + this.Options.StorageOptions.StorageProvider;
-            this._eventBufferBlock = this._serviceProvider.GetRequiredService<IDataflowBufferBlockFactory>().Create<EventBufferWrap>(bufferKey, this.LazySaveAsync);
+            this._eventBufferBlock = this._serviceProvider.GetRequiredService<IDataflowBufferBlockFactory>().Create<EventStorageBufferWrap>(bufferKey, this.LazySaveAsync);
 
             //Get snapshot storage information
             if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
@@ -47,7 +47,7 @@ namespace Ray2.EventSource
             //Sharding processing
             string storageTableName = await this.GetEventTableName();
             EventSingleStorageModel storageModel = new EventSingleStorageModel(@event.StateId, @event, this.Options.EventSourceName, storageTableName);
-            var bufferWrap = new EventBufferWrap(storageModel);
+            var bufferWrap = new EventStorageBufferWrap(storageModel);
             return await this._eventBufferBlock.SendAsync(bufferWrap);
         }
         public async Task<bool> SaveAsync(IList<IEvent<TStateKey>> events)
@@ -63,9 +63,9 @@ namespace Ray2.EventSource
             }
             return await this._eventStorage.SaveAsync(storageModel);
         }
-        public async Task LazySaveAsync(BufferBlock<EventBufferWrap> eventBuferr)
+        public async Task LazySaveAsync(BufferBlock<EventStorageBufferWrap> eventBuferr)
         {
-            var bufferWrapList = new List<EventBufferWrap>();
+            var bufferWrapList = new List<EventStorageBufferWrap>();
             while (eventBuferr.TryReceive(out var evt))
             {
                 bufferWrapList.Add(evt);

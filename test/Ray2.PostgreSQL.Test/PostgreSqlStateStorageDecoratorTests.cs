@@ -61,7 +61,7 @@ namespace Ray2.PostgreSQL.Test
         {
             Assert.Null(deleteState);
             Assert.NotNull(selectState);
-            TestState.Valid(state);
+            selectState.Valid(state);
         }
     }
 }

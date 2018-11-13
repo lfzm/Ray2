@@ -9,7 +9,7 @@ namespace Ray2.EventProcess
     {
         EventProcessOptions Options { get; set; }
         Task<IEventProcessCore> Init(EventProcessor eventProcessor);
-        Task Tell(IEvent @event);
+        Task Tell(EventProccessBufferWrap eventWrap);
     }
 
 

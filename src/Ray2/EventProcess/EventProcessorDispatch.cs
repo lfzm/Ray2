@@ -23,7 +23,7 @@ namespace Ray2.EventProcess
                 var eventProcessor = this.serviceProvider.GetRequiredServiceByName<IEventProcessor>(info.Group);
                 if (message.Event is IEvent @event)
                 {
-                    await eventProcessor.Tell(@event);
+                    await eventProcessor.Tell(new EventProccessBufferWrap(@event));
                     return true;
                 }
             }

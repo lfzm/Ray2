@@ -8,6 +8,7 @@ namespace Ray2.Internal
     public interface IDataflowBufferBlockFactory
     {
 
-        IDataflowBufferBlock<T> Create<T>(string name, Func<BufferBlock<T>, Task> processor);
+        IDataflowBufferBlock<T> Create<T>(string name, Func<BufferBlock<T>, Task> processor)
+            where T : IDataflowBufferWrap;
     }
 }

@@ -111,7 +111,7 @@ namespace Ray2.PostgreSQL.Test
         {
             Assert.Null(exception);
             Assert.NotNull(ReadState);
-            TestState.Valid(state);
+            ReadState.Valid(state);
         }
         private void ThenExecuteInsert_UniqueViolation()
         {

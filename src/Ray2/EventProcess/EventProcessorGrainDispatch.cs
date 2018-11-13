@@ -16,9 +16,9 @@ namespace Ray2.EventProcess
             this._serviceProvider = serviceProvider;
             this.grainFactory = serviceProvider.GetRequiredService<IGrainFactory>();
         }
-        public Task Tell(IEvent @event)
+        public Task Tell(EventProccessBufferWrap eventWrap)
         {
-            object id = @event.GetStateId();
+            object id = eventWrap.Event.GetStateId();
             IEventProcessor eventProcessor;
             if (id is Guid _guid)
             {
@@ -32,7 +32,7 @@ namespace Ray2.EventProcess
             {
                 eventProcessor = grainFactory.GetGrain<IEventProcessor>(primaryKey: (long)id, grainClassNamePrefix: _grainClassName);
             }
-            return eventProcessor.Tell(@event);
+            return eventProcessor.Tell(eventWrap);
         }
     }
 }

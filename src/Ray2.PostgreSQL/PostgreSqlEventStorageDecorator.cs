@@ -38,9 +38,9 @@ namespace Ray2.PostgreSQL
             return stotage.GetListAsync(queryModel);
         }
 
-        public Task SaveAsync(List<EventBufferWrap> wrapList)
+        public Task SaveAsync(List<EventStorageBufferWrap> wrapList)
         {
-            Dictionary<string, List<EventBufferWrap>> eventsList = wrapList.GroupBy(f => f.Value.StorageTableName).ToDictionary(x => x.Key, v => v.ToList());
+            Dictionary<string, List<EventStorageBufferWrap>> eventsList = wrapList.GroupBy(f => f.Value.StorageTableName).ToDictionary(x => x.Key, v => v.ToList());
             foreach (var key in eventsList.Keys)
             {
                 var events = eventsList[key];

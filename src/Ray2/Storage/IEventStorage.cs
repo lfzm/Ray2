@@ -10,7 +10,7 @@ namespace Ray2.Storage
     {
         Task<List<EventModel>> GetListAsync(string tableName,  EventQueryModel queryModel);
         Task<EventModel> GetAsync(string tableName, object stateId, long version);
-        Task SaveAsync(List<EventBufferWrap> wrapList);
+        Task SaveAsync(List<EventStorageBufferWrap> wrapList);
         Task<bool> SaveAsync(EventCollectionStorageModel eventList);
     }
 }

@@ -15,7 +15,7 @@ namespace Ray2.PostgreSQL.Test
         private PostgreSqlEventStorage storage;
         private string TableName;
         private string EventSourceName;
-        private EventBufferWrap eventWrap;
+        private EventStorageBufferWrap eventWrap;
         public PostgreSqlEventStorageTests()
         {
             this.EventSourceName = "Test";
@@ -31,8 +31,8 @@ namespace Ray2.PostgreSQL.Test
             e.StateId = 1000;
             EventSingleStorageModel model = new EventSingleStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
 
-            eventWrap = new EventBufferWrap(model);
-            List<EventBufferWrap> events = new List<EventBufferWrap>
+            eventWrap = new EventStorageBufferWrap(model);
+            List<EventStorageBufferWrap> events = new List<EventStorageBufferWrap>
             {
                 eventWrap
             };
@@ -112,7 +112,7 @@ namespace Ray2.PostgreSQL.Test
             var tableStorage = serviceProvider.GetRequiredServiceByName<IPostgreSqlTableStorage>(FakeConfig.ProviderName);
             tableStorage.CreateEventTable(this.TableName, 1);
         }
-        private void When_Save(List<EventBufferWrap> list)
+        private void When_Save(List<EventStorageBufferWrap> list)
         {
             this.storage.SaveAsync(list).GetAwaiter().GetResult();
         }

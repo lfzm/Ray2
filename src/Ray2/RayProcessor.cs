@@ -14,9 +14,9 @@ namespace Ray2
             this.ServiceProvider = serviceProvider;
             this._eventProcessCore = this.ServiceProvider.GetEventProcessCore(this).Init(this.OnEventProcessing).GetAwaiter().GetResult();
         }
-        public Task Tell(IEvent @event)
+        public Task Tell(EventProccessBufferWrap eventWrap)
         {
-            return this._eventProcessCore.Tell(@event);
+            return this._eventProcessCore.Tell(eventWrap);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

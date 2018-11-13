@@ -11,7 +11,7 @@ namespace Ray2.PostgreSQL
     {
         Task<List<EventModel>> GetListAsync( EventQueryModel queryModel);
         Task<EventModel> GetAsync(object stateId, long version);
-        Task SaveAsync(List<EventBufferWrap> wrapList);
+        Task SaveAsync(List<EventStorageBufferWrap> wrapList);
         Task<bool> SaveAsync(EventCollectionStorageModel eventList);
 
     }
