@@ -21,6 +21,10 @@ namespace Ray2.Internal
             return Task.Run(async () =>
             {
                 var result = await dataflowChannel.SendAsync(wrap);
+                if (!result)
+                {
+                    return result;
+                }
                 if (isProcessing == 0)
                     TriggerProcessor();
                 return await wrap.TaskSource.Task;

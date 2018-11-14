@@ -4,6 +4,7 @@ using Ray2.Configuration;
 using Ray2.Serialization;
 using Ray2.Storage;
 using System;
+using Moq;
 
 namespace Ray2.PostgreSQL.Test
 {
@@ -27,7 +28,12 @@ namespace Ray2.PostgreSQL.Test
                 opt.ConnectionString = Options.ConnectionString;
             });
             services.AddLogging();
-            services.AddSingleton<IInternalConfiguration, InternalConfiguration>();
+            Mock<IInternalConfiguration> internalConfiguration = new Mock<IInternalConfiguration>();
+
+            var type = typeof(TestEvent);
+            string name = type.FullName;
+            internalConfiguration.Setup(f => f.GetEvenType(name, out type)).Returns(true);
+            services.AddSingleton<IInternalConfiguration>(internalConfiguration.Object);
             services.AddSingleton(typeof(IKeyedServiceCollection<,>), typeof(KeyedServiceCollection<,>));
             services.AddSingletonNamedService<ISerializer, JsonSerializer>(SerializationType.JsonUTF8);
             services.AddSingletonNamedService<IStateStorage>(ProviderName, (sp, n) =>

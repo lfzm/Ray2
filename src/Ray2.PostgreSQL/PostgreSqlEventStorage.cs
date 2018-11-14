@@ -18,7 +18,6 @@ namespace Ray2.PostgreSQL
 {
     public class PostgreSqlEventStorage : IPostgreSqlEventStorage
     {
-        public readonly DataflowBufferBlock<EventStorageBufferWrap> dataflowBufferBlock;
         private readonly IServiceProvider _serviceProvider;
         private readonly IInternalConfiguration _internalConfiguration;
         private readonly ILogger _logger;
@@ -36,13 +35,12 @@ namespace Ray2.PostgreSQL
             this._serviceProvider = serviceProvider;
             this._logger = serviceProvider.GetRequiredService<ILogger<PostgreSqlStateStorage>>();
             this._internalConfiguration = serviceProvider.GetRequiredService<IInternalConfiguration>();
-            this.dataflowBufferBlock = new DataflowBufferBlock<EventStorageBufferWrap>(this.LazySaveAsync);
             this.BuildSql(tableName);
         }
-        public Task<List<EventModel>> GetListAsync(EventQueryModel query)
+        public async Task<List<EventModel>> GetListAsync(EventQueryModel query)
         {
             var list = new List<EventModel>(query.Limit);
-            using (var conn = PostgreSqlDbContext.Create(this.options))
+            using (var db = PostgreSqlDbContext.Create(this.options))
             {
                 StringBuilder sql = new StringBuilder($"COPY (SELECT typecode,data,datatype,version FROM {tableName} WHERE version > '{query.StartVersion}'");
                 if (query.StateId != null)
@@ -55,7 +53,8 @@ namespace Ray2.PostgreSQL
                     sql.Append($" and relationevent = '{query.RelationEvent}'");
                 sql.Append(" ORDER BY version ASC) TO STDOUT(FORMAT BINARY)");
 
-                using (var reader = conn.BeginBinaryExport(sql.ToString()))
+                await db.OpenAsync();
+                using (var reader = db.BeginBinaryExport(sql.ToString()))
                 {
                     while (reader.StartRow() != -1)
                     {
@@ -65,26 +64,22 @@ namespace Ray2.PostgreSQL
                         long version = reader.Read<Int64>(NpgsqlDbType.Bigint);
 
                         //Get event type
-                        if (this._internalConfiguration.GetEvenType(typeCode, out Type type))
+                        EventModel eventModel = this.ConversionEvent(typeCode, dataType, dataBytes, version);
+                        if (eventModel != null)
                         {
-                            object data = this.GetSerializer(dataType).Deserialize(type, dataBytes);
-                            EventModel eventModel = new EventModel(data, typeCode, version);
                             list.Add(eventModel);
-                        }
-                        else
-                        {
-                            this._logger.LogWarning($"{typeCode} event type not exist to IInternalConfiguration");
                         }
                     }
                 }
             }
-            return Task.FromResult(list);
+            return list;
         }
-        public Task<EventModel> GetAsync(object stateId, long version)
+        public async Task<EventModel> GetAsync(object stateId, long version)
         {
             using (var db = PostgreSqlDbContext.Create(this.options))
             {
-                StringBuilder sql = new StringBuilder($"COPY (SELECT typecode,data,datatype FROM {tableName} WHERE stateid = '{stateId.ToString()}' and  version = '{version}'");
+                StringBuilder sql = new StringBuilder($"COPY (SELECT typecode,data,datatype FROM {tableName} WHERE stateid = '{stateId.ToString()}' and  version = '{version}' ) TO STDOUT(FORMAT BINARY)");
+                await db.OpenAsync();
                 using (var reader = db.BeginBinaryExport(sql.ToString()))
                 {
                     while (reader.StartRow() != -1)
@@ -93,40 +88,43 @@ namespace Ray2.PostgreSQL
                         byte[] dataBytes = reader.Read<byte[]>(NpgsqlDbType.Bytea);
                         string dataType = reader.Read<string>(NpgsqlDbType.Varchar);
 
-                        //Get event type
-                        if (this._internalConfiguration.GetEvenType(typeCode, out Type type))
-                        {
-                            object data = this.GetSerializer(dataType).Deserialize(type, dataBytes);
-                            EventModel eventModel = new EventModel(data, typeCode, version);
-                            return Task.FromResult(eventModel);
-                        }
-                        else
-                        {
-                            this._logger.LogWarning($"{typeCode} event type not exist to IInternalConfiguration");
-                        }
+                        return this.ConversionEvent(typeCode, dataType, dataBytes, version);
                     }
-                    return Task.FromResult<EventModel>(null);
+                    return null;
                 }
             }
         }
-        public async Task SaveAsync(List<EventStorageBufferWrap> events)
+
+        public EventModel ConversionEvent(string typeCode, string dataType, byte[] bytes, long version)
+        {
+            //Get event type
+            if (this._internalConfiguration.GetEvenType(typeCode, out Type type))
+            {
+                object data = this.GetSerializer(dataType).Deserialize(type, bytes);
+                EventModel eventModel = new EventModel(data, typeCode, version);
+                return eventModel;
+            }
+            else
+            {
+                this._logger.LogWarning($"{typeCode} event type not exist to IInternalConfiguration");
+                return null;
+            }
+        }
+        public async Task SaveAsync(List<EventStorageBufferWrap> eventWraps)
         {
             using (var db = PostgreSqlDbContext.Create(this.options))
             {
                 await db.OpenAsync();
                 try
                 {
-                    var eventList = events.Select(f => f.Value).ToList<EventStorageModel>();
+                    var eventList = eventWraps.Select(f => f.Value).ToList<EventStorageModel>();
                     this.BinarySaveAsync(db, eventList);
-                    events.ForEach(wrap => wrap.TaskSource.TrySetResult(true));
+                    eventWraps.ForEach(wrap => wrap.TaskSource.TrySetResult(true));
                     return;
                 }
                 catch
                 {
-                    foreach (var e in events)
-                    {
-                        await this.dataflowBufferBlock.SendAsync(e);
-                    }
+                    await this.SqlSaveAsync(db, eventWraps);
                 }
             }
         }
@@ -157,39 +155,41 @@ namespace Ray2.PostgreSQL
                 writer.Complete();
             }
         }
-        public async Task LazySaveAsync(BufferBlock<EventStorageBufferWrap> eventBuffer)
+
+        public async Task SqlSaveAsync(PostgreSqlDbContext db, List<EventStorageBufferWrap> eventWraps)
         {
-            using (var db = PostgreSqlDbContext.Create(this.options))
+            using (var trans = db.BeginTransaction())
             {
-                while (eventBuffer.TryReceive(out var wrap))
+                try
                 {
-                    await this.SqlSaveAsync(db, wrap);
+                    foreach (var wrap in eventWraps)
+                    {
+                        EventSingleStorageModel model = wrap.Value;
+                        var data = this.GetSerializer().Serialize(model.Event);
+
+                        wrap.Result = await db.ExecuteAsync(this.insertSql, new
+                        {
+                            StateId = model.StateId,
+                            RelationEvent = model.Event.RelationEvent,
+                            TypeCode = model.Event.TypeCode,
+                            Data = data,
+                            DataType = this.options.SerializationType,
+                            Version = model.Event.Version,
+                            AddTime = model.Event.Timestamp
+                        }) > 0;
+
+                    }
+                    trans.Commit();
+                    eventWraps.ForEach(wrap => wrap.TaskSource.TrySetResult(wrap.Result));
+                }
+                catch (Exception ex)
+                {
+                    trans.Rollback();
+                    eventWraps.ForEach(wrap => wrap.TaskSource.TrySetException(ex));
                 }
             }
-        }
-        public async Task SqlSaveAsync(PostgreSqlDbContext db, EventStorageBufferWrap wrap)
-        {
-            try
-            {
-                EventSingleStorageModel model = wrap.Value;
-                var data = this.GetSerializer().Serialize(model.Event);
 
-                wrap.Result = await db.ExecuteAsync(this.insertSql, new
-                {
-                    StateId = model.StateId,
-                    RelationEvent = model.Event.RelationEvent,
-                    TypeCode = model.Event.TypeCode,
-                    Data = data,
-                    DataType = this.options.SerializationType,
-                    Version = model.Event.Version,
-                    AddTime = model.Event.Timestamp
-                }) > 0;
-                wrap.TaskSource.TrySetResult(wrap.Result);
-            }
-            catch (Exception ex)
-            {
-                wrap.TaskSource.TrySetException(ex);
-            }
+
         }
         private ISerializer GetSerializer(string name)
         {
