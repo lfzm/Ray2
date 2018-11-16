@@ -22,6 +22,7 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 services.AddRay(build.Configuration, builder);
             });
+            hostBuilder.EnableDirectClient();
             hostBuilder.AddStartupTask<MQManager>();
             return hostBuilder;
         }

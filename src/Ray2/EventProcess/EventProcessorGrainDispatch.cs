@@ -9,12 +9,12 @@ namespace Ray2.EventProcess
     {
         private readonly string _grainClassName;
         private readonly IServiceProvider _serviceProvider;
-        private readonly IGrainFactory grainFactory;
+        private readonly IClusterClient client;
         public EventProcessorGrainDispatch(string grainClassName, IServiceProvider serviceProvider)
         {
             this._grainClassName = grainClassName;
             this._serviceProvider = serviceProvider;
-            this.grainFactory = serviceProvider.GetRequiredService<IGrainFactory>();
+            this.client = serviceProvider.GetRequiredService<IClusterClient>();
         }
         public Task Tell(EventProccessBufferWrap eventWrap)
         {
@@ -22,15 +22,15 @@ namespace Ray2.EventProcess
             IEventProcessor eventProcessor;
             if (id is Guid _guid)
             {
-                eventProcessor = grainFactory.GetGrain<IEventProcessor>(primaryKey: _guid, grainClassNamePrefix: _grainClassName);
+                eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: _guid, grainClassNamePrefix: _grainClassName);
             }
             else if (id is string _strId)
             {
-                eventProcessor = grainFactory.GetGrain<IEventProcessor>(primaryKey: _strId, grainClassNamePrefix: _grainClassName);
+                eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: _strId, grainClassNamePrefix: _grainClassName);
             }
             else
             {
-                eventProcessor = grainFactory.GetGrain<IEventProcessor>(primaryKey: (long)id, grainClassNamePrefix: _grainClassName);
+                eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: (long)id, grainClassNamePrefix: _grainClassName);
             }
             return eventProcessor.Tell(eventWrap);
         }
