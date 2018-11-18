@@ -36,13 +36,13 @@ namespace Ray2.PostgreSQL.Test
             services.AddSingleton<IInternalConfiguration>(internalConfiguration.Object);
             services.AddSingleton(typeof(IKeyedServiceCollection<,>), typeof(KeyedServiceCollection<,>));
             services.AddSingletonNamedService<ISerializer, JsonSerializer>(SerializationType.JsonUTF8);
-            services.AddSingletonNamedService<IStateStorage>(ProviderName, (sp, n) =>
+            services.AddSingletonNamedService(ProviderName, (Func<IServiceProvider, string, IStateStorage>)((sp, n) =>
             {
-                return new PostgreSqlStateStorageDecorator(sp, n);
-            });
+                return new PostgreSQL.StateStorage(sp, n);
+            }));
             services.AddSingletonNamedService<IEventStorage>(ProviderName, (sp, n) =>
             {
-                return new PostgreSqlEventStorageDecorator(sp, n);
+                return new EventStorage(sp, n);
             });
             services.AddSingletonNamedService<IPostgreSqlTableStorage>(ProviderName, (sp, n) =>
             {

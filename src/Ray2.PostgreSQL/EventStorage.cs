@@ -11,14 +11,14 @@ using System.Threading.Tasks;
 
 namespace Ray2.PostgreSQL
 {
-    public class PostgreSqlEventStorageDecorator : IEventStorage
+    public class EventStorage : IEventStorage
     {
         private readonly ConcurrentDictionary<string, IPostgreSqlEventStorage> storageList = new ConcurrentDictionary<string, IPostgreSqlEventStorage>();
         private readonly IServiceProvider _serviceProvider;
         private readonly IPostgreSqlTableStorage _tableStorage;
         private readonly PostgreSqlOptions _options;
         private readonly string _providerName;
-        public PostgreSqlEventStorageDecorator(IServiceProvider serviceProvider, string name)
+        public EventStorage(IServiceProvider serviceProvider, string name)
         {
             this._providerName = name;
             this._serviceProvider = serviceProvider;

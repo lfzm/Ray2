@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Ray2.PostgreSQL
 {
-    public class PostgreSqlStateStorageDecorator : IStateStorage
+    public class StateStorage : IStateStorage
     {
         private readonly ConcurrentDictionary<string, IPostgreSqlStateStorage> storageList = new ConcurrentDictionary<string, IPostgreSqlStateStorage>();
         private readonly IServiceProvider _serviceProvider;
@@ -16,7 +16,7 @@ namespace Ray2.PostgreSQL
         private readonly PostgreSqlOptions _options;
         private readonly string _providerName;
 
-        public PostgreSqlStateStorageDecorator(IServiceProvider serviceProvider, string name)
+        public StateStorage(IServiceProvider serviceProvider, string name)
         {
             this._providerName = name;
             this._serviceProvider = serviceProvider;

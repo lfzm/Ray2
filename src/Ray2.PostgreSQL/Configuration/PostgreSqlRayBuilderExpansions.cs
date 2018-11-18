@@ -44,11 +44,11 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             build.Services.AddSingletonNamedService<IStateStorage>(name, (sp, n) =>
             {
-                return new PostgreSqlStateStorageDecorator(sp, n);
+                return new StateStorage(sp, n);
             });
             build.Services.AddSingletonNamedService<IEventStorage>(name, (sp, n) =>
             {
-                return new PostgreSqlEventStorageDecorator(sp, n);
+                return new EventStorage(sp, n);
             });
             build.Services.AddSingletonNamedService<IPostgreSqlTableStorage>(name, (sp, n) =>
             {

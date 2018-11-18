@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Ray2.PostgreSQL.Test
 {
-   public class PostgreSqlEventStorageDecoratorTests
+   public class EventStorageTests
     {
     }
 }

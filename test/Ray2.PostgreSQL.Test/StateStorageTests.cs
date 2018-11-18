@@ -6,18 +6,18 @@ using Xunit;
 
 namespace Ray2.PostgreSQL.Test
 {
-    public class PostgreSqlStateStorageDecoratorTests
+    public class StateStorageTests
     {
-        private PostgreSqlStateStorageDecorator container;
+        private PostgreSQL.StateStorage container;
         private string TableName;
         private TestState selectState;
         private TestState deleteState;
 
-        public PostgreSqlStateStorageDecoratorTests()
+        public StateStorageTests()
         {
             this.TableName = "st_ContainerTest";
             var sp = FakeConfig.BuildServiceProvider();
-            container = new PostgreSqlStateStorageDecorator(sp, FakeConfig.ProviderName);
+            container = new PostgreSQL.StateStorage(sp, FakeConfig.ProviderName);
         }
         [Fact]
         public void should_Success()
