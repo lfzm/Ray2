@@ -8,6 +8,6 @@ namespace Ray2.MQ
     /// </summary>
     public interface IEventSubscriber
     {
-        Task Subscribe(EventSubscribeInfo info);
+        Task Subscribe(string group,string topic);
     }
 }

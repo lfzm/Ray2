@@ -4,6 +4,7 @@ using Ray2;
 using Ray2.Configuration.Validator;
 using Ray2.MQ;
 using System;
+using System.Threading.Tasks;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -23,7 +24,10 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddRay(build.Configuration, builder);
             });
             hostBuilder.EnableDirectClient();
-            hostBuilder.AddStartupTask<MQManager>();
+            hostBuilder.AddStartupTask((sp,cancellationToken)=>
+            {
+                return sp.GetRequiredService<IMQSubscriber>().Start();
+            });
             return hostBuilder;
         }
 

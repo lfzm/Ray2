@@ -3,13 +3,12 @@ using System.Threading.Tasks;
 
 namespace Ray2.MQ
 {
-    public interface IMQManager
+    public interface IMQSubscriber
     {
         /// <summary>
-        /// Start mq subscription
+        /// Start MQ subscription
         /// </summary>
-        /// <param name="subscribeList"></param>
         /// <returns></returns>
-        Task Start(IList<EventSubscribeInfo> subscribeList);
+        Task Start();
     }
 }

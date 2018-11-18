@@ -12,7 +12,7 @@ namespace Ray2.Configuration.Creator
             {
                 return null;
             }
-            return new EventPublishOptions(attribute.MQTopic, attribute.MQProvider, type.FullName);
+            return new EventPublishOptions(attribute.Topic, attribute.MQProvider, type.FullName);
         }
     }
 }

@@ -6,6 +6,6 @@ namespace Ray2
     public class EventPublishAttribute : Attribute
     {
         public string MQProvider { get; set; }
-        public string MQTopic { get; set; }
+        public string Topic { get; set; }
     }
 }
