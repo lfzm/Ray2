@@ -109,7 +109,7 @@ namespace Ray2.RabbitMQ
                 var message = this._serializer.Deserialize<EventPublishMessage>(bytes);
                 //Get event type
                 if (this._internalConfiguration.GetEvenType(message.TypeCode, out Type type))
-                {
+                { 
                     object data = this._serializer.Deserialize(type, bytes);
                     if (data is IEvent e)
                     {
