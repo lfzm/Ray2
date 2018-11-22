@@ -24,9 +24,6 @@ namespace Ray2.Configuration.Validator
                 .NotEmpty()
                 .WithMessage(x => $"EventSubscribeAttribute.Topic in {x.EventSubscribeFullName} cannot be empty");
 
-            base.RuleFor(x => x.Group)
-                .NotEmpty()
-                .WithMessage(x => $"EventSubscribeAttribute.Group in {x.EventSubscribeFullName} cannot be empty");
         }
 
 

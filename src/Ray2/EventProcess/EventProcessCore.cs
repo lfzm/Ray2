@@ -16,7 +16,7 @@ namespace Ray2.EventProcess
     public class EventProcessCore : IEventProcessCore
     {
         protected readonly ILogger _logger;
-        protected readonly IDataflowBufferBlock<EventProccessBufferWrap> _eventBufferBlock;
+        protected readonly IDataflowBufferBlock<EventModel> _eventBufferBlock;
         protected readonly IServiceProvider _serviceProvider;
         protected EventProcessor _eventProcessor;
         public EventProcessOptions Options { get; set; }
@@ -25,7 +25,7 @@ namespace Ray2.EventProcess
         {
             this._serviceProvider = serviceProvider;
             this._logger = logger;
-            this._eventBufferBlock = new DataflowBufferBlock<EventProccessBufferWrap>(this.TriggerEventProcessing);
+            this._eventBufferBlock = new DataflowBufferBlock<EventModel>(this.TriggerEventProcessing);
         }
 
         public Task<IEventProcessCore> Init(EventProcessor eventProcessor)
@@ -35,26 +35,31 @@ namespace Ray2.EventProcess
             return Task.FromResult(eventProcessCore);
         }
 
-        public Task Tell(EventProccessBufferWrap eventWrap)
+        public virtual async Task<bool> Tell(EventModel model)
         {
-            return this._eventBufferBlock.SendAsync(eventWrap);
+            //Cache stacking exceeds 50, wait 1 second
+            if (this._eventBufferBlock.Count > 50)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+            return await this._eventBufferBlock.SendAsync(model);
         }
 
-        protected virtual async Task TriggerEventProcessing(BufferBlock<EventProccessBufferWrap> eventBuffer)
+        protected virtual async Task TriggerEventProcessing(BufferBlock<EventModel> eventBuffer)
         {
             try
             {
-                List<EventProccessBufferWrap> eventWraps = new List<EventProccessBufferWrap>();
-                while (eventBuffer.TryReceive(out var eventWrap))
+                List<IEvent> events = new List<IEvent>();
+                while (eventBuffer.TryReceive(out var model))
                 {
-                    if (eventWraps.Count > this.Options.OnceProcessCount)
+                    if (events.Count > this.Options.OnceProcessCount)
                         break;
-                    eventWraps.Add(eventWrap);
+                    events.Add(model.Event);
                 }
                 //Exclude duplicate events
                 using (var tokenSource = new CancellationTokenSource())
                 {
-                    var tasks = eventWraps.Select(eventWrap => this._eventProcessor(eventWrap.Event));
+                    var tasks = events.Select(e => this._eventProcessor(e));
                     var taskAllEvent = Task.WhenAll(tasks);
                     using (var taskTimeOut = Task.Delay(this.Options.OnceProcessTimeout, tokenSource.Token))
                     {
@@ -76,7 +81,7 @@ namespace Ray2.EventProcess
             }
         }
 
-       
+
     }
 
     public class EventProcessCore<TState, TStateKey> : EventProcessCore, IEventProcessCore<TState, TStateKey>
@@ -103,20 +108,25 @@ namespace Ray2.EventProcess
             this.State = await this.ReadStateAsync();
             return this;
         }
-        protected override async Task TriggerEventProcessing(BufferBlock<EventProccessBufferWrap> eventBuffer)
+
+        public override Task<bool> Tell(EventModel model)
+        {
+            return this._eventBufferBlock.SendAsync(model);
+        }
+        protected override async Task TriggerEventProcessing(BufferBlock<EventModel> eventBuffer)
         {
             try
             {
                 if (this.Options.OnceProcessCount > 1)
                 {
                     List<IEvent> events = new List<IEvent>();
-                    while (eventBuffer.TryReceive(out var eventWrap))
+                    while (eventBuffer.TryReceive(out var model))
                     {
                         if (events.Count > this.Options.OnceProcessCount)
                             break;
-                        if (eventWrap.Event.Version < this.State.NextVersion())
+                        if (model.Version < this.State.NextVersion())
                             continue;
-                        events.Add(eventWrap.Event);
+                        events.Add(model.Event);
                     }
                     //Exclude duplicate events
                     events = events.OrderBy(w => w.Version).ToList();
@@ -124,9 +134,9 @@ namespace Ray2.EventProcess
                 }
                 else
                 {
-                    while (eventBuffer.TryReceive(out var eventWrap))
+                    while (eventBuffer.TryReceive(out var model))
                     {
-                        await this.TriggerEventProcess(eventWrap.Event);
+                        await this.TriggerEventProcess(model.Event);
                     }
                 }
             }

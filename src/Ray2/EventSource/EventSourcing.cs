@@ -213,15 +213,7 @@ namespace Ray2.EventSource
 
             foreach (var model in eventModels)
             {
-                if (model.Data is IEvent @event)
-                {
-                    events.Add(@event);
-                }
-                else
-                {
-                    this._logger.LogWarning($"{model.TypeCode}.{model.Version}  not equal to IEvent");
-                    continue;
-                }
+                events.Add(model.Event);
             }
             return events;
         }
@@ -233,7 +225,7 @@ namespace Ray2.EventSource
 
             foreach (var model in eventModels)
             {
-                if (model.Data is IEvent<TStateKey> @event)
+                if (model.Event is IEvent<TStateKey> @event)
                 {
                     events.Add(@event);
                 }

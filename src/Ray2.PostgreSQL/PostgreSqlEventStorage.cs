@@ -101,8 +101,16 @@ namespace Ray2.PostgreSQL
             if (this._internalConfiguration.GetEvenType(typeCode, out Type type))
             {
                 object data = this.GetSerializer(dataType).Deserialize(type, bytes);
-                EventModel eventModel = new EventModel(data, typeCode, version);
-                return eventModel;
+                if(data is IEvent e)
+                {
+                    EventModel eventModel = new EventModel(e, typeCode, version);
+                    return eventModel;
+                }
+                else
+                {
+                    this._logger.LogWarning($"{dataType}.{version}  not equal to IEvent");
+                    return null;
+                }
             }
             else
             {

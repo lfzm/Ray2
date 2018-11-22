@@ -1,4 +1,5 @@
 ﻿using Orleans;
+using Ray2.EventSource;
 using System.Threading.Tasks;
 
 namespace Ray2.EventProcess
@@ -8,7 +9,7 @@ namespace Ray2.EventProcess
     /// </summary>
     public interface IEventProcessor : IGrainWithGuidKey, IGrainWithIntegerKey, IGrainWithStringKey
     {
-        Task Tell(EventProccessBufferWrap eventWrap);
+        Task<bool> Tell(EventModel model);
     }
 }
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Orleans;
+using Ray2.EventSource;
 using System;
 using System.Threading.Tasks;
 
@@ -16,9 +17,9 @@ namespace Ray2.EventProcess
             this._serviceProvider = serviceProvider;
             this.client = serviceProvider.GetRequiredService<IClusterClient>();
         }
-        public Task Tell(EventProccessBufferWrap eventWrap)
+        public Task<bool> Tell(EventModel model)
         {
-            object id = eventWrap.Event.GetStateId();
+            object id = model.Event.GetStateId();
             IEventProcessor eventProcessor;
             if (id is Guid _guid)
             {
@@ -32,7 +33,7 @@ namespace Ray2.EventProcess
             {
                 eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: (long)id, grainClassNamePrefix: _grainClassName);
             }
-            return eventProcessor.Tell(eventWrap);
+            return eventProcessor.Tell(model);
         }
     }
 }

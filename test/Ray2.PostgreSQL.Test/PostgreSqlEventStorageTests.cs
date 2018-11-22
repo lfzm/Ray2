@@ -152,7 +152,7 @@ namespace Ray2.PostgreSQL.Test
         {
             var isSuccess = this.eventWrap.TaskSource.Task.GetAwaiter().GetResult();
             Assert.True(isSuccess);
-            if (eventModel.Data is TestEvent e)
+            if (eventModel.Event is TestEvent e)
             {
                 e.Valid(@event);
             }

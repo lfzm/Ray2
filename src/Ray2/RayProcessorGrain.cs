@@ -1,6 +1,7 @@
 ﻿using Orleans;
 using Orleans.Runtime;
 using Ray2.EventProcess;
+using Ray2.EventSource;
 using Ray2.MQ;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -29,9 +30,9 @@ namespace Ray2
             await this._eventProcessCore.SaveStateAsync();
             await base.OnDeactivateAsync();
         }
-        public Task Tell(EventProccessBufferWrap eventWrap)
+        public Task<bool> Tell(EventModel model)
         {
-            return this._eventProcessCore.Tell(eventWrap);
+            return this._eventProcessCore.Tell(model);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract Task OnEventProcessing(IEvent @event);

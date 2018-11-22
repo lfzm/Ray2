@@ -6,11 +6,12 @@ using System.Threading.Tasks.Dataflow;
 namespace Ray2.Internal
 {
     public class DataflowBufferBlock<T> : IDataflowBufferBlock<T>
-          where T : IDataflowBufferWrap
     {
         private int isProcessing = 0;
         private readonly BufferBlock<T> dataflowChannel = new BufferBlock<T>();
         private readonly Func<BufferBlock<T>, Task> processor;
+
+        public int Count => dataflowChannel.Count;
 
         public DataflowBufferBlock(Func<BufferBlock<T>, Task> processor)
         {
@@ -27,7 +28,15 @@ namespace Ray2.Internal
                 }
                 if (isProcessing == 0)
                     TriggerProcessor();
-                return await wrap.TaskSource.Task;
+                //Determine if you need to wait for processing
+                if (wrap is IDataflowBufferWrap wr)
+                {
+                    return await wr.TaskSource.Task;
+                }
+                else
+                {
+                    return result;
+                }
             });
         }
 

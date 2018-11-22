@@ -34,9 +34,10 @@ namespace Ray2
         {
             this.Services.AddOptions();
             this.Services.AddTransient(typeof(IEventSourcing<,>), typeof(EventSourcing<,>));
-            this.Services.AddTransient<IEventSourcing,EventSourcing>();
+            this.Services.AddTransient<IEventSourcing, EventSourcing>();
             this.Services.AddTransient(typeof(IEventProcessCore<,>), typeof(EventProcessCore<,>));
             this.Services.AddTransient<IEventProcessCore, EventProcessCore>();
+            this.Services.AddTransient<IEventProcessorFactory, EventProcessorFactory>();
             this.Services.AddTransient<IMQPublisher, MQPublisher>();
             this.Services.AddTransient<IMQSubscriber, MQSubscriber>();
             this.Services.AddTransient<IDataflowBufferBlockFactory, DataflowBufferBlockFactory>();
@@ -52,7 +53,7 @@ namespace Ray2
             this.Services.AddSingleton<IEventPublishOptionsCreator, EventPublishOptionsCreator>();
             this.Services.AddSingleton<IEventSubscribeOptionsCreator, EventSubscribeOptionsCreator>();
 
-            this.Services.AddSingleton<IInternalConfigurationValidator,InternalConfigurationFluentVaildator>();
+            this.Services.AddSingleton<IInternalConfigurationValidator, InternalConfigurationFluentVaildator>();
             this.Services.AddSingleton<EventProcessOptionsFluentVaildator>();
             this.Services.AddSingleton<EventPublishOptionsFluentVaildator>();
             this.Services.AddSingleton<EventSourceOptionsFluentVaildator>();
@@ -64,6 +65,18 @@ namespace Ray2
             var configurationCreator = this.Services.BuildServiceProvider().GetRequiredService<IInternalConfigurationCreator>();
             var configuration = configurationCreator.Create();
             this.Services.AddSingleton<IInternalConfiguration>(configuration);
+
+            //Inject the Processor into the DI system
+            var processList = configuration.GetEventProcessOptionsList();
+            if (processList == null || processList.Count == 0)
+                return;
+            foreach (var p in processList)
+            {
+                if (p.ProcessorType == ProcessorType.SimpleProcessor)
+                {
+                    this.Services.AddSingleton(p.ProcessorHandle);
+                }
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Ray2.EventSource;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Ray2.MQ
@@ -8,8 +9,8 @@ namespace Ray2.MQ
     /// </summary>
     public interface IEventPublisher
     {
-        Task<bool> Publish(string topic, EventPublishMessage model);
-        Task<bool> Publish(string topic, IList<EventPublishMessage> model);
+        Task<bool> Publish(string topic, EventModel model);
+        Task<bool> Publish(string topic, IList<EventModel> model);
 
     }
 }

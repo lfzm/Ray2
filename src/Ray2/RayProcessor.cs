@@ -1,4 +1,5 @@
 ﻿using Ray2.EventProcess;
+using Ray2.EventSource;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -14,9 +15,9 @@ namespace Ray2
             this.ServiceProvider = serviceProvider;
             this._eventProcessCore = this.ServiceProvider.GetEventProcessCore(this).Init(this.OnEventProcessing).GetAwaiter().GetResult();
         }
-        public Task Tell(EventProccessBufferWrap eventWrap)
+        public Task<bool> Tell(EventModel model)
         {
-            return this._eventProcessCore.Tell(eventWrap);
+            return this._eventProcessCore.Tell(model);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

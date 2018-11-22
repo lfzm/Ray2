@@ -14,9 +14,10 @@ namespace Ray2.Configuration.Builder
         private StatusOptions _statusOptions;
         private IList<EventSubscribeOptions> _eventSubscribeOptions;
         private ProcessorType _processorType;
-
-        public EventProcessOptionsBuilder WithProcessor(string name,  Type type)
+        private Type _processorHandle;
+        public EventProcessOptionsBuilder WithProcessor(string name, Type type)
         {
+            this._processorHandle = type;
             this._processorName = name;
             this._processorFullName = type.FullName;
             if (type.BaseType == typeof(Grain))
@@ -27,7 +28,7 @@ namespace Ray2.Configuration.Builder
             {
                 _processorType = ProcessorType.SimpleProcessor;
             }
-                return this;
+            return this;
         }
 
         public EventProcessOptionsBuilder WithEventSourceName(string name)
@@ -57,7 +58,7 @@ namespace Ray2.Configuration.Builder
 
         public EventProcessOptions Build()
         {
-            return new EventProcessOptions(_processorName, _processorFullName, _processorType, _eventSourceName, _onceProcessCount, _onceProcessTimeout, _statusOptions, _eventSubscribeOptions);
+            return new EventProcessOptions(_processorName, _processorFullName, _processorType, _processorHandle, _eventSourceName, _onceProcessCount, _onceProcessTimeout, _statusOptions, _eventSubscribeOptions);
         }
     }
 }
