@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Ray2.RabbitMQ
 {
@@ -9,5 +10,11 @@ namespace Ray2.RabbitMQ
     /// </summary>
     public interface IRabbitProducer
     {
+        /// <summary>
+        /// Is this producer available?
+        /// </summary>
+        /// <returns></returns>
+        bool IsAvailable();
+        Task<bool> Publish(string exchange, string routingKey, PublishMessage message);
     }
 }

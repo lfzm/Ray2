@@ -7,6 +7,6 @@ namespace Ray2.RabbitMQ
 {
     public interface IRabbitChannelFactory
     {
-        Task<IRabbitChannel> GetChannel();
+        IRabbitChannel GetChannel();
     }
 }

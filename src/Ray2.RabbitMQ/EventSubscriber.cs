@@ -26,14 +26,14 @@ namespace Ray2.RabbitMQ
         private readonly Dictionary<string, IList<IRabbitConsumer>> consumerList = new Dictionary<string, IList<IRabbitConsumer>>();
         public EventSubscriber(IServiceProvider serviceProvider, string providerName)
         {
+            this.providerName = providerName;
             this._serviceProvider = serviceProvider;
             this._logger = this._serviceProvider.GetRequiredService<ILogger<EventSubscriber>>();
             this._options = serviceProvider.GetRequiredService<IOptionsSnapshot<RabbitOptions>>().Get(providerName);
             this._eventProcessorFactory = serviceProvider.GetRequiredService<IEventProcessorFactory>();
             this._serializer = this._serviceProvider.GetRequiredServiceByName<ISerializer>(_options.SerializationType);
+            var _channelFactory = serviceProvider.GetRequiredServiceByName<IRabbitChannelFactory>(this.providerName);
             this._monitorTimer = new Timer(state => { MonitorConsumer().Wait(); }, null, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(10));
-            this.providerName = providerName;
-
         }
         public async Task Subscribe(string group, string topic)
         {

@@ -24,7 +24,7 @@ namespace Ray2.RabbitMQ
             this.RemainderCount = this.Options.ConnectionPoolCount > 0 ? this.Options.ConnectionPoolCount : 10;
         }
 
-        public async Task<IRabbitChannel> GetChannel()
+        public IRabbitChannel GetChannel()
         {
             IRabbitConnection connection;
             if (Interlocked.Decrement(ref this.RemainderCount) > 0)
@@ -39,8 +39,8 @@ namespace Ray2.RabbitMQ
                 }
                 else
                 {
-                    await Task.Delay(1000);
-                    return await this.GetChannel();
+                    Task.Delay(1000).GetAwaiter().GetResult();
+                    return this.GetChannel();
                 }
             }
             //Continue to line up

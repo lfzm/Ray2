@@ -15,10 +15,19 @@ namespace Ray2.RabbitMQ
         public void Close()
         {
             this.Model.Close();
+            this.Model.Dispose();
         }
         public bool IsOpen()
         {
-            return this.Model.IsOpen;
+            if (this.Model.IsClosed && this.Model.IsOpen)
+            {
+                return true;
+            }
+            else
+            {
+                this.Model.Dispose();
+                return false;
+            }
         }
         public uint MessageCount(string quene)
         {

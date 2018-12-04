@@ -33,8 +33,8 @@ namespace Ray2.RabbitMQ
             this._serializer = serializer;
             this._internalConfiguration = serviceProvider.GetRequiredService<IInternalConfiguration>();
             this._logger = serviceProvider.GetRequiredService<ILogger<RabbitConsumer>>();
-            var _channelPool = serviceProvider.GetRequiredServiceByName<IRabbitChannelFactory>(this.providerName);
-            this._channel = _channelPool.GetChannel().GetAwaiter().GetResult();
+            var _channelFactory = serviceProvider.GetRequiredServiceByName<IRabbitChannelFactory>(this.providerName);
+            this._channel = _channelFactory.GetChannel();
         }
 
         public bool IsAvailable()
@@ -141,7 +141,7 @@ namespace Ray2.RabbitMQ
         {
             try
             {
-                var message = this._serializer.Deserialize<EventPublishMessage>(bytes);
+                var message = this._serializer.Deserialize<PublishMessage>(bytes);
                 //Get event type
                 if (this._internalConfiguration.GetEvenType(message.TypeCode, out Type type))
                 {
