@@ -1,4 +1,4 @@
-﻿namespace Ray2
+﻿namespace Ray2.Protobuf
 {
     public class SerializationType
     {

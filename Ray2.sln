@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ray2.PostgreSQL.Test", "tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ray2.PostgreSQL", "src\Ray2.PostgreSQL\Ray2.PostgreSQL.csproj", "{52AA52E7-4D01-4AB5-B6B7-9C57B7D0A645}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ray2.Protobuf", "src\Ray2.Protobuf\Ray2.Protobuf.csproj", "{EF113CAE-6F1A-4CEF-BDC8-CD235870ABF4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ray2.Protobuf", "src\Ray2.Protobuf\Ray2.Protobuf.csproj", "{EF113CAE-6F1A-4CEF-BDC8-CD235870ABF4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
