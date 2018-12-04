@@ -9,8 +9,19 @@ namespace Ray2.MQ
     /// </summary>
     public interface IEventPublisher
     {
+        /// <summary>
+        /// Publish a message to the message queue
+        /// </summary>
+        /// <param name="topic">topic</param>
+        /// <param name="model">Event object</param>
+        /// <returns></returns>
         Task<bool> Publish(string topic, EventModel model);
+        /// <summary>
+        /// Publish a message to the message queue
+        /// </summary>
+        /// <param name="topic">topic</param>
+        /// <param name="model">Event object collection</param>
+        /// <returns></returns>
         Task<bool> Publish(string topic, IList<EventModel> model);
-
     }
 }

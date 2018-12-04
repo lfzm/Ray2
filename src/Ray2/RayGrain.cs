@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Orleans;
-using Orleans.Runtime;
+using Ray2.Configuration;
 using Ray2.EventSource;
 using Ray2.MQ;
 using System;
@@ -17,12 +18,15 @@ namespace Ray2
         where TState : IState<TStateKey>, new()
     {
         protected internal TState State { get; private set; }
+        protected abstract TStateKey StateId { get; }
+
         protected ILogger Logger { get; set; }
-        internal IEventSourcing<TState, TStateKey> eventSourcing;
-        internal IMQPublisher MQPublisher { get; private set; }
+        private IEventSourcing<TState, TStateKey> _eventSourcing;
+        private IInternalConfiguration _internalConfiguration;
+        private IMQPublisher _mqPublisher;
         private bool IsBeginTransaction;
         private bool IsBlock;
-        protected abstract TStateKey StateId { get; }
+        private EventPublishOptions PublishOptions;
         public RayGrain(ILogger logger)
         {
             this.Logger = logger;
@@ -35,10 +39,11 @@ namespace Ray2
         {
             try
             {
-                this.eventSourcing = await this.ServiceProvider.GetEventSourcing<TState, TStateKey>(this)
-                    .Init(this.StateId);
-                this.MQPublisher = this.ServiceProvider.GetRequiredServiceByName<IMQPublisher>(this.GetType().FullName);
-                this.State = await this.eventSourcing.ReadSnapshotAsync();
+                this._internalConfiguration = this.ServiceProvider.GetRequiredService<IInternalConfiguration>();
+                this._mqPublisher = this.ServiceProvider.GetRequiredService<IMQPublisher>();
+                this._eventSourcing = await this.ServiceProvider.GetEventSourcing<TState, TStateKey>(this).Init(this.StateId);
+                this.State = await this._eventSourcing.ReadSnapshotAsync();
+                this.PublishOptions = this._internalConfiguration.GetEventPublishOptions(this);
                 await base.OnActivateAsync();
             }
             catch (Exception ex)
@@ -49,7 +54,7 @@ namespace Ray2
         }
         public override async Task OnDeactivateAsync()
         {
-            await this.eventSourcing.SaveSnapshotAsync(this.State);
+            await this._eventSourcing.SaveSnapshotAsync(this.State);
             await base.OnDeactivateAsync();
         }
 
@@ -71,7 +76,7 @@ namespace Ray2
             @event.Version = State.NextVersion();
             @event.StateId = State.StateId;
             //Storage event
-            if (await this.eventSourcing.SaveAsync(@event))
+            if (await this._eventSourcing.SaveAsync(@event))
             {
                 try
                 {
@@ -87,7 +92,7 @@ namespace Ray2
                 if (isPublish)
                     await this.PublishEventAsync(@event);
                 //Save snapshot
-                await this.eventSourcing.SaveSnapshotAsync(this.State);
+                await this._eventSourcing.SaveSnapshotAsync(this.State);
                 return true;
             }
             else
@@ -99,12 +104,26 @@ namespace Ray2
         /// </summary>
         /// <param name="event"><see cref="IEvent"/></param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected virtual Task<bool> PublishEventAsync(IEvent @event)
+        internal async Task PublishEventAsync(IEvent @event)
         {
-            if (@event == null)
-                throw new ArgumentNullException("PublishEventAsync event cannot be empty");
-            return MQPublisher.Publish(@event);
+            try
+            {
+                if (@event == null)
+                    throw new ArgumentNullException("PublishEventAsync event cannot be empty");
+                if (this.PublishOptions != null)
+                {
+                    await _mqPublisher.Publish(@event, this.PublishOptions.Topic, this.PublishOptions.MQProvider);
+                }
+                var opt = this._internalConfiguration.GetEventPublishOptions(@event);
+                if (opt != null)
+                {
+                    await _mqPublisher.Publish(@event, this.PublishOptions.Topic, this.PublishOptions.MQProvider);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.Logger.LogError(ex, $"Publish {@event.TypeCode}.V{@event.Version} event failed");
+            }
         }
         /// <summary>
         /// begin transaction
@@ -117,7 +136,7 @@ namespace Ray2
             if (this.IsBeginTransaction)
                 throw new Exception("Unable to open event again during transaction");
             this.IsBeginTransaction = true;
-            return new EventTransaction<TState, TStateKey>(this);
+            return new EventTransaction<TState, TStateKey>(this, this._eventSourcing);
         }
         /// <summary>
         /// end transaction
@@ -128,8 +147,8 @@ namespace Ray2
             //Play master status
             if (events != null && events.Count > 0)
             {
-                this.State = this.eventSourcing.TraceAsync(this.State, events);
-                this.eventSourcing.SaveSnapshotAsync(this.State).Wait();
+                this.State = this._eventSourcing.TraceAsync(this.State, events);
+                this._eventSourcing.SaveSnapshotAsync(this.State).Wait();
             }
         }
         private void IsBlockProcess()

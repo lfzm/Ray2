@@ -33,14 +33,14 @@ namespace Ray2.RabbitMQ
             this.MaxChannelCount = this._options.ConnectionPoolCount * 20;//20 channels per connection pool
         }
 
-        public async Task<bool> Publish(string topic, EventModel model)
+        public Task<bool> Publish(string topic, EventModel model)
         {
-            IRabbitProducer producer = await this.GetProducer();
-            return await this.Publish(topic, model, producer);
+            IRabbitProducer producer = this.GetProducer();
+            return this.Publish(topic, model, producer);
         }
         public async Task<bool> Publish(string topic, IList<EventModel> models)
         {
-            IRabbitProducer producer = await this.GetProducer();
+            IRabbitProducer producer = this.GetProducer();
             foreach (var model in models)
             {
                 await this.Publish(topic, model, producer);
@@ -53,7 +53,7 @@ namespace Ray2.RabbitMQ
             return producer.Publish(topic, topic, message);
         }
 
-        public async Task<IRabbitProducer> GetProducer()
+        public IRabbitProducer GetProducer()
         {
             IRabbitProducer producer;
             if (ProducersPool.TryDequeue(out producer))
@@ -74,10 +74,10 @@ namespace Ray2.RabbitMQ
                 }
                 else
                 {
-                    await Task.Delay(500);
+                    Task.Delay(500).GetAwaiter().GetResult();
                 }
             }
-            return await this.GetProducer();
+            return this.GetProducer();
         }
     }
 }

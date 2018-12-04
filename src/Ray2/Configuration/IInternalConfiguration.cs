@@ -71,9 +71,9 @@ namespace Ray2.Configuration
         /// <summary>
         ///  Get the event publishing configuration in the event processor
         /// </summary>
-        /// <param name="eventProcessor">event processor</param>
+        /// <param name="@event">event</param>
         /// <returns></returns>
-        EventPublishOptions GetEventPublishOptions(IEventProcessor eventProcessor);
+        EventPublishOptions GetEventPublishOptions(IEvent @event);
         /// <summary>
         /// Get all event publishing configurations
         /// </summary>

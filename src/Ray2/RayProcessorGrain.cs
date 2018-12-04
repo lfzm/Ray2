@@ -17,12 +17,10 @@ namespace Ray2
         private IEventProcessCore<TState, TStateKey> _eventProcessCore;
         protected TState State { get { return _eventProcessCore.ReadStateAsync().GetAwaiter().GetResult(); } }
         protected abstract TStateKey StateId { get; }
-        protected IMQPublisher MQPublisher { get; private set; }
         public override async Task OnActivateAsync()
         {
             this._eventProcessCore = await this.ServiceProvider.GetEventProcessCore<TState, TStateKey>(this)
                 .Init(this.StateId, this.OnEventProcessing);
-            this.MQPublisher = this.ServiceProvider.GetRequiredServiceByName<IMQPublisher>(this.GetType().FullName);
             await base.OnActivateAsync();
         }
         public override async Task OnDeactivateAsync()

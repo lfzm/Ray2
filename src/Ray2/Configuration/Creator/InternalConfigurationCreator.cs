@@ -56,7 +56,7 @@ namespace Ray2.Configuration.Creator
 
                 //Create an event publishing configuration
                 var eventPublishOptions = this._eventPublishOptionsCreator.Create(type);
-                if (eventPublishOptions == null)
+                if (eventPublishOptions != null)
                 {
                     this.builder.WithEventPublishOptions(type.FullName, eventPublishOptions);
                 }
@@ -73,13 +73,6 @@ namespace Ray2.Configuration.Creator
             {
                 var eventProcessOptions = this._eventProcessOptionsCreator.Create(type);
                 this.builder.WithEventProcessOptions(eventProcessOptions);
-
-                //Create an event publishing configuration
-                var eventPublishOptions = this._eventPublishOptionsCreator.Create(type);
-                if (eventPublishOptions == null)
-                {
-                    this.builder.WithEventPublishOptions(type.FullName, eventPublishOptions);
-                }
             }
         }
 
@@ -101,6 +94,13 @@ namespace Ray2.Configuration.Creator
                     else
                         info.Name = type.FullName;
                     this.builder.WithEventInfo(info);
+
+                    //Create an event publishing configuration
+                    var eventPublishOptions = this._eventPublishOptionsCreator.Create(type);
+                    if (eventPublishOptions != null)
+                    {
+                        this.builder.WithEventPublishOptions(type.FullName, eventPublishOptions);
+                    }
                 }
             }
         }

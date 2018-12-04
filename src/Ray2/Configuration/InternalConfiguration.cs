@@ -83,9 +83,9 @@ namespace Ray2.Configuration
             }
         }
 
-        public EventPublishOptions GetEventPublishOptions(IEventProcessor eventProcessor)
+        public EventPublishOptions GetEventPublishOptions(IEvent @event)
         {
-            if (_eventPublishOptions.TryGetValue(eventProcessor.GetType().FullName, out EventPublishOptions options))
+            if (_eventPublishOptions.TryGetValue(@event.GetType().FullName, out EventPublishOptions options))
             {
                 return options;
             }

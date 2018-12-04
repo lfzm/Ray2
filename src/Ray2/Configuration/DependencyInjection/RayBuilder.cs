@@ -37,11 +37,11 @@ namespace Ray2
             this.Services.AddTransient<IEventSourcing, EventSourcing>();
             this.Services.AddTransient(typeof(IEventProcessCore<,>), typeof(EventProcessCore<,>));
             this.Services.AddTransient<IEventProcessCore, EventProcessCore>();
-            this.Services.AddTransient<IEventProcessorFactory, EventProcessorFactory>();
-            this.Services.AddTransient<IMQPublisher, MQPublisher>();
-            this.Services.AddTransient<IMQSubscriber, MQSubscriber>();
-            this.Services.AddTransient<IDataflowBufferBlockFactory, DataflowBufferBlockFactory>();
 
+            this.Services.AddSingleton<IEventProcessorFactory, EventProcessorFactory>();
+            this.Services.AddSingleton<IMQSubscriber, MQSubscriber>();
+            this.Services.AddSingleton<IMQPublisher, MQPublisher>();
+            this.Services.AddSingleton<IDataflowBufferBlockFactory, DataflowBufferBlockFactory>();
             this.Services.AddSingletonNamedService<ISerializer, JsonSerializer>(SerializationType.JsonUTF8);
         }
 
