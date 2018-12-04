@@ -37,8 +37,8 @@ namespace Ray2.EventProcess
 
         public virtual async Task<bool> Tell(EventModel model)
         {
-            //Cache stacking exceeds 50, wait 1 second
-            if (this._eventBufferBlock.Count > 50)
+            //Wait for the number of buffers to be greater than twice the number of processing
+            if (this._eventBufferBlock.Count > this.Options.OnceProcessCount * 2)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1));
             }

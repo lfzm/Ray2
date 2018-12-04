@@ -22,11 +22,17 @@ namespace Ray2.RabbitMQ
         /// Is this consumer available?
         /// </summary>
         /// <returns></returns>
-        Task<bool> IsAvailable();
+        bool IsAvailable();
         /// <summary>
-        /// Do you need to expand the channel?
+        /// Need to expand
         /// </summary>
         /// <returns></returns>
-        Task<bool> IsExpand();
+        bool IsExpand();
+        /// <summary>
+        /// Stop listening
+        /// </summary>
+        /// <returns></returns>
+        Task Stop();
+
     }
 }

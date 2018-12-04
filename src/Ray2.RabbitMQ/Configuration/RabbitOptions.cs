@@ -32,6 +32,10 @@ namespace Ray2.RabbitMQ.Configuration
         /// </summary>
         public string[] HostNames { get; set; } = new string[0];
         /// <summary>
+        /// This is the number of connection pools
+        /// </summary>
+        public int ConnectionPoolCount { get; set; } = 10;
+        /// <summary>
         ///This is the Consumer Options
         /// </summary>
         public List<RabbitConsumeOptions> ConsumeOptions { get; set; } = new List<RabbitConsumeOptions>();
@@ -44,6 +48,11 @@ namespace Ray2.RabbitMQ.Configuration
                 foreach (var host in HostNames)
                 {
                     list.Add(AmqpTcpEndpoint.Parse(host));
+                }
+                if (!string.IsNullOrEmpty(HostName))
+                {
+                    list.Add(AmqpTcpEndpoint.Parse(this.HostName));
+
                 }
                 return list;
             }

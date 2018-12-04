@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Ray2.RabbitMQ
 {
-    public interface IRabbitChannelPool
+    public interface IRabbitChannelFactory
     {
         Task<IRabbitChannel> GetChannel();
     }

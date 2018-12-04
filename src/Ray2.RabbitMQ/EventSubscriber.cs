@@ -21,7 +21,7 @@ namespace Ray2.RabbitMQ
         private readonly RabbitOptions _options;
         private readonly ILogger _logger;
         private readonly string providerName;
-        private readonly Dictionary<string, IRabbitConsumer> consumerList = new Dictionary<string, IRabbitConsumer>();
+        private readonly Dictionary<string, IList<IRabbitConsumer>> consumerList = new Dictionary<string, IList<IRabbitConsumer>>();
         public EventSubscriber(IServiceProvider serviceProvider, string providerName)
         {
             this._serviceProvider = serviceProvider;
@@ -35,12 +35,14 @@ namespace Ray2.RabbitMQ
         }
         public async Task Subscribe(string group, string topic)
         {
+            IList<IRabbitConsumer> consumers = new List<IRabbitConsumer>();
             var options = this.GetConsumeOptions(group, topic);
             IEventProcessor processor = this._eventProcessorFactory.Create(group);
             IRabbitConsumer consumer = new RabbitConsumer(providerName, _serviceProvider, this._serializer);
             await consumer.Subscribe(group, topic, processor, options);
             //Collected to detect whether it is alive
-            this.consumerList.Add($"{group}@{topic}", consumer);
+            consumers.Add(consumer);
+            this.consumerList.Add($"{group}@{topic}", consumers);
         }
 
         /// <summary>
@@ -57,6 +59,17 @@ namespace Ray2.RabbitMQ
             else
                 return new RabbitConsumeOptions();
 
+        }
+
+        public async Task Stop()
+        {
+            foreach (var consumers in consumerList.Values)
+            {
+                foreach (var consumer in consumers)
+                {
+                    await consumer.Stop();
+                }
+            }
         }
     }
 }

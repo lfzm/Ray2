@@ -5,6 +5,7 @@ using Ray2.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Ray2.EventSource;
 
 namespace Ray2.MQ
 {
@@ -26,11 +27,7 @@ namespace Ray2.MQ
         {
             try
             {
-                var message = new EventPublishMessage()
-                {
-                    Event = @event,
-                    TypeCode = @event.TypeCode
-                };
+                var message = new EventModel(@event){};
                 return this._publisher.Publish(_options.Topic, message);
             }
             catch (Exception ex)
@@ -44,14 +41,10 @@ namespace Ray2.MQ
         {
             try
             {
-                List<EventPublishMessage> messages = new List<EventPublishMessage>();
+                List<EventModel> messages = new List<EventModel>();
                 foreach (var e in events)
                 {
-                    var message = new EventPublishMessage()
-                    {
-                        Event = e,
-                        TypeCode = e.TypeCode
-                    };
+                    var message = new EventModel(e) { };
                     messages.Add(message);
                 }
                 return this._publisher.Publish(_options.Topic, messages);

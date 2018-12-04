@@ -10,5 +10,11 @@ namespace Ray2.MQ
         /// </summary>
         /// <returns></returns>
         Task Start();
+
+        /// <summary>
+        /// Stop listening
+        /// </summary>
+        /// <returns></returns>
+        Task Stop();
     }
 }

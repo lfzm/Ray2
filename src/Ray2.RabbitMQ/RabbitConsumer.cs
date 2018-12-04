@@ -25,6 +25,7 @@ namespace Ray2.RabbitMQ
         public string Exchange { get; private set; }
         public RabbitConsumeOptions Options { get; private set; }
         public IEventProcessor Processor { get; private set; }
+        public bool NeedRestart { get; private set; }
         public RabbitConsumer(string providerName, IServiceProvider serviceProvider, ISerializer serializer)
         {
             this.providerName = providerName;
@@ -32,20 +33,38 @@ namespace Ray2.RabbitMQ
             this._serializer = serializer;
             this._internalConfiguration = serviceProvider.GetRequiredService<IInternalConfiguration>();
             this._logger = serviceProvider.GetRequiredService<ILogger<RabbitConsumer>>();
-            var _channelPool = serviceProvider.GetRequiredServiceByName<IRabbitChannelPool>(this.providerName);
+            var _channelPool = serviceProvider.GetRequiredServiceByName<IRabbitChannelFactory>(this.providerName);
             this._channel = _channelPool.GetChannel().GetAwaiter().GetResult();
         }
 
-        public Task<bool> IsAvailable()
+        public bool IsAvailable()
         {
-            throw new NotImplementedException();
+            //Restart the queue if there is an exception in the callback
+            if (this.NeedRestart)
+                return true;
+            if (this._channel.IsOpen())
+                return false;
+            else
+                return true;
         }
-
-        public Task<bool> IsExpand()
+        public bool IsExpand()
         {
-            throw new NotImplementedException();
+            //Expand to maximum queue if automatically confirmed
+            if (this.Options.AutoAck)
+            {
+                return true;
+            }
+            if (this._channel.IsOpen())
+            {
+                //Expand the number of stacks by more than twice the number of treatments
+                uint accumulation = this._channel.MessageCount(this.Queue);
+                if (accumulation >= this.Options.OneFetchCount * 2)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
-
         public Task Subscribe(string queue, string exchange, IEventProcessor processor, RabbitConsumeOptions options)
         {
             this.Exchange = exchange;
@@ -58,50 +77,66 @@ namespace Ray2.RabbitMQ
             this._channel.Model.QueueDeclare(this.Queue, true, false, false, null);
             this._channel.Model.QueueBind(this.Queue, this.Exchange, this.Exchange);
             this._channel.Model.BasicQos(0, options.OneFetchCount, false);
+            this._channel.Model.CallbackException += Channel_CallbackException;
 
+            //Consumer reports in the channel
             var basicConsumer = new EventingBasicConsumer(this._channel.Model);
             basicConsumer.Received += async (ch, ea) =>
             {
-                await Process(ea, 0);
+                await Process(ea);
             };
             basicConsumer.ConsumerTag = this._channel.Model.BasicConsume(this.Queue, options.AutoAck, basicConsumer);
             return Task.CompletedTask;
         }
-
-        public async Task Process(BasicDeliverEventArgs e, int count)
+        public Task Stop()
         {
-            if (count > 0)
-                await Task.Delay(count * 1000);
+            this._channel.Close();
+            return Task.CompletedTask;
+        }
+
+        private void Channel_CallbackException(object sender, CallbackExceptionEventArgs e)
+        {
+            this._logger.LogError(e.Exception.InnerException ?? e.Exception, $"RabbitMQ callback exception; {this.Exchange}-{this.Queue}");
+            this.NeedRestart = true;
+
+        }
+        public async Task Process(BasicDeliverEventArgs e)
+        {
+            var model = this.ConversionEvent(e.Body);
+            if (model != null)
+            {
+                await this.Process(model, 0);
+            }
+            if (!this.Options.AutoAck)
+            {
+                try
+                {
+                    this._channel.Model.BasicAck(e.DeliveryTag, false);
+                }
+                catch (Exception ex)
+                {
+                    this._logger.LogError(ex.InnerException ?? ex, $"RabbitMQ confirms receipt of message failed; {this.Exchange}-{this.Queue}");
+                }
+            }
+        }
+        public async Task Process(EventModel model, int count)
+        {
             try
             {
-                var model = this.ConversionEvent(e.Body);
-                if (model != null)
-                {
-                    await this.Processor.Tell(model);
-                }
-                if (!this.Options.AutoAck)
-                {
-                    try
-                    {
-                        this._channel.Model.BasicAck(e.DeliveryTag, false);
-                    }
-                    catch (Exception ex)
-                    {
+                if (count > 0)
+                    await Task.Delay(count * 1000);
 
-                        throw;
-                    }
-                }
+                await this.Processor.Tell(model);
             }
             catch (Exception ex)
             {
-                this._logger.LogError(ex.InnerException ?? ex, $"An error occurred in {this.Exchange}-{this.Queue}");
-                if (count > 3)
-                    consumerChild.NeedRestart = true;
-                else
-                    await Process(e, count + 1);
+                this._logger.LogError(ex.InnerException ?? ex, $"Notification processor processing failed; {this.Exchange}-{this.Queue}");
+                if (this.Options.NoticeRetriesCount <= count)
+                {
+                    await Process(model, count + 1);
+                }
             }
         }
-
         public EventModel ConversionEvent(byte[] bytes)
         {
             try
@@ -109,7 +144,7 @@ namespace Ray2.RabbitMQ
                 var message = this._serializer.Deserialize<EventPublishMessage>(bytes);
                 //Get event type
                 if (this._internalConfiguration.GetEvenType(message.TypeCode, out Type type))
-                { 
+                {
                     object data = this._serializer.Deserialize(type, bytes);
                     if (data is IEvent e)
                     {
@@ -130,10 +165,11 @@ namespace Ray2.RabbitMQ
             }
             catch (Exception ex)
             {
-                this._logger.LogError(ex,$"Message serialization failed in {this.Exchange}-{this.Queue}");
+                this._logger.LogError(ex, $"Message serialization failed in {this.Exchange}-{this.Queue}");
                 return null;
             }
         }
+    
 
 
     }

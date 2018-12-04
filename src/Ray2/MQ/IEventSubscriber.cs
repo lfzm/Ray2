@@ -9,5 +9,11 @@ namespace Ray2.MQ
     public interface IEventSubscriber
     {
         Task Subscribe(string group,string topic);
+
+        /// <summary>
+        /// Stop listening
+        /// </summary>
+        /// <returns></returns>
+        Task Stop();
     }
 }
