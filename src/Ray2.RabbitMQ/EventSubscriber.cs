@@ -9,6 +9,7 @@ using Ray2.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ray2.RabbitMQ
@@ -20,6 +21,7 @@ namespace Ray2.RabbitMQ
         private readonly ISerializer _serializer;
         private readonly RabbitOptions _options;
         private readonly ILogger _logger;
+        private readonly Timer _monitorTimer;
         private readonly string providerName;
         private readonly Dictionary<string, IList<IRabbitConsumer>> consumerList = new Dictionary<string, IList<IRabbitConsumer>>();
         public EventSubscriber(IServiceProvider serviceProvider, string providerName)
@@ -29,7 +31,7 @@ namespace Ray2.RabbitMQ
             this._options = serviceProvider.GetRequiredService<IOptionsSnapshot<RabbitOptions>>().Get(providerName);
             this._eventProcessorFactory = serviceProvider.GetRequiredService<IEventProcessorFactory>();
             this._serializer = this._serviceProvider.GetRequiredServiceByName<ISerializer>(_options.SerializationType);
-
+            this._monitorTimer = new Timer(state => { MonitorConsumer().Wait(); }, null, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(10));
             this.providerName = providerName;
 
         }
@@ -69,6 +71,59 @@ namespace Ray2.RabbitMQ
                 {
                     await consumer.Stop();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Monitor consumer availability and expansion
+        /// </summary>
+        /// <returns></returns>
+        public async Task MonitorConsumer()
+        {
+            foreach (var key in consumerList.Keys)
+            {
+                IList<IRabbitConsumer> consumers = consumerList[key];
+                //Check if you need to expand
+                //Check that more than half of the consumers vote to expand and expand
+                if ((consumers.Count / 2) <= consumers.Where(f => f.IsExpand()).Count())
+                {
+                    IRabbitConsumer consumer = consumers.First();
+                    await this.Subscribe(consumer.Queue, consumer.Exchange);
+                }
+
+                //Check if the consumer is restarted
+                for (int i = 0; i < consumers.Count; i++)
+                {
+                    IRabbitConsumer consumer = consumers[i];
+                    if (await this.RestartConsumer(consumer))
+                    {
+                        //Remove old consumers
+                        consumers.RemoveAt(i);
+                        i--;
+                    }
+                }
+            }
+        }
+
+        public async Task<bool> RestartConsumer(IRabbitConsumer consumer)
+        {
+            try
+            {
+                if (consumer.IsAvailable())
+                {
+                    await this.Subscribe(consumer.Queue, consumer.Exchange);
+                    await consumer.Stop();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogError(ex, $"Restart {consumer.Queue}&{consumer.Exchange}consumer failed");
+                return false;
             }
         }
     }

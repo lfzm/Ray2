@@ -42,10 +42,10 @@ namespace Ray2.RabbitMQ
             //Restart the queue if there is an exception in the callback
             if (this.NeedRestart)
                 return true;
-            if (this._channel.IsOpen())
-                return false;
-            else
+            if (!this._channel.IsOpen())
                 return true;
+            else
+                return false;
         }
         public bool IsExpand()
         {
