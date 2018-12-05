@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ray2.PostgreSQL", "src\Ray2
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ray2.Protobuf", "src\Ray2.Protobuf\Ray2.Protobuf.csproj", "{EF113CAE-6F1A-4CEF-BDC8-CD235870ABF4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ray2.RabbitMQ.Test", "test\Ray2.RabbitMQ.Test\Ray2.RabbitMQ.Test.csproj", "{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,14 @@ Global
 		{EF113CAE-6F1A-4CEF-BDC8-CD235870ABF4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EF113CAE-6F1A-4CEF-BDC8-CD235870ABF4}.Release|x64.ActiveCfg = Release|Any CPU
 		{EF113CAE-6F1A-4CEF-BDC8-CD235870ABF4}.Release|x64.Build.0 = Release|Any CPU
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}.Debug|x64.Build.0 = Debug|Any CPU
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}.Release|x64.ActiveCfg = Release|Any CPU
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -97,6 +107,7 @@ Global
 		{7E717274-FBA7-49BF-88B4-560F6B111ED3} = {D7F7255C-3204-4243-96EF-01CDF299A891}
 		{52AA52E7-4D01-4AB5-B6B7-9C57B7D0A645} = {35A301C0-776D-4CA7-8218-D6DFF3205CBD}
 		{EF113CAE-6F1A-4CEF-BDC8-CD235870ABF4} = {35A301C0-776D-4CA7-8218-D6DFF3205CBD}
+		{AF52CD75-E6E3-4F5C-915D-1836DA9FBB85} = {D7F7255C-3204-4243-96EF-01CDF299A891}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B7F09963-06DE-499A-B620-B6EFB2FB2BE5}

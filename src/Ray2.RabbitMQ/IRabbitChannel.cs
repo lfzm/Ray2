@@ -7,6 +7,7 @@ namespace Ray2.RabbitMQ
 {
     public interface IRabbitChannel
     {
+        IRabbitConnection Connection { get; }
         bool IsOpen();
         void Close();
         IModel Model { get; }

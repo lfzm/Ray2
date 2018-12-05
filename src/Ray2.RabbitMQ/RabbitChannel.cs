@@ -4,13 +4,14 @@ namespace Ray2.RabbitMQ
 {
     public class RabbitChannel : IRabbitChannel
     {
-        private IRabbitConnection Connection { get; set; }
-        public RabbitChannel(IModel model, IRabbitConnection connection)
-        {
-            this.Model = model;
-            this.Connection = connection;
-        }
+        public IRabbitConnection Connection { get; }
         public IModel Model { get; }
+
+        public RabbitChannel(IRabbitConnection conn)
+        {
+            this.Connection = conn;
+            this.Model = conn.Connection.CreateModel();
+        }
 
         public void Close()
         {
@@ -19,7 +20,7 @@ namespace Ray2.RabbitMQ
         }
         public bool IsOpen()
         {
-            if (this.Model.IsClosed && this.Model.IsOpen)
+            if (!this.Model.IsClosed && this.Model.IsOpen)
             {
                 return true;
             }
@@ -31,7 +32,14 @@ namespace Ray2.RabbitMQ
         }
         public uint MessageCount(string quene)
         {
-            return this.Model.MessageCount(quene);
+            if (this.IsOpen())
+            {
+                return this.Model.MessageCount(quene);
+            }
+            else
+            {
+                return 0;
+            }
         }
     }
 }

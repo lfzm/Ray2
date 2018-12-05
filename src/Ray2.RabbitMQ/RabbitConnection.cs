@@ -9,7 +9,7 @@ namespace Ray2.RabbitMQ
         private readonly RabbitOptions Options;
         private readonly IServiceProvider _serviceProvider;
         private readonly ConnectionFactory _connectionFactory;
-        private IConnection connection;
+        public IConnection Connection { get;  }
         public RabbitConnection(IServiceProvider serviceProvider, RabbitOptions options)
         {
             this._serviceProvider = serviceProvider;
@@ -21,22 +21,22 @@ namespace Ray2.RabbitMQ
                 VirtualHost = this.Options.VirtualHost,
                 AutomaticRecoveryEnabled = false
             };
-            this.connection = this._connectionFactory.CreateConnection(this.Options.EndPoints);
+            this.Connection = this._connectionFactory.CreateConnection(this.Options.EndPoints);
         }
 
         public void Close()
         {
-            this.Close();
+            this.Connection.Close();
+            this.Connection.Dispose();
         }
 
         public IRabbitChannel CreateChannel()
         {
-            if (!this.connection.IsOpen)
+            if (!this.Connection.IsOpen)
             {
                 throw new Exception("rabbitMQ service has been disconnected");
             }
-            IModel model = this.connection.CreateModel();
-            return new RabbitChannel(model,this);
+            return new RabbitChannel(this);
         }
     }
 }

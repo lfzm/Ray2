@@ -18,7 +18,7 @@ namespace Ray2.RabbitMQ.Configuration
         /// This is the VirtualHost of Rebbit
         /// </summary>
         /// </summary>
-        public string VirtualHost { get; set; }
+        public string VirtualHost { get; set; } = "/";
         /// <summary>
         /// Data serialization type
         /// </summary>

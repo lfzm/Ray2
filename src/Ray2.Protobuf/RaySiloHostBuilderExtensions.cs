@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns></returns>
         public static IRayBuilder AddProtobuf(this IRayBuilder build)
         {
-            build.Services.AddSingletonNamedService<ISerializer, ProtobufSerializer>(SerializationType.Protobuf);
+            build.Services.AddSingletonNamedService<ISerializer, ProtobufSerializer>(Ray2.Protobuf.SerializationType.Protobuf);
             return build;
         }
     }
