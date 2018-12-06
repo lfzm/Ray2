@@ -4,6 +4,7 @@ using Orleans.Runtime;
 using Ray2.Configuration;
 using Ray2.MQ;
 using Ray2.RabbitMQ.Configuration;
+using Ray2.RabbitMQ.Test.Model;
 using Ray2.Serialization;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,7 @@ namespace Ray2.RabbitMQ.Test
         public const string ProviderName = "Default";
         public static RabbitOptions Options = new RabbitOptions()
         {
-            HostName = "192.168.1.250",
+            HostName = "127.0.0.1",
             UserName= "admin",
             Password = "admin"
         };
@@ -26,7 +27,8 @@ namespace Ray2.RabbitMQ.Test
             services.AddOptions().Configure<RabbitOptions>(ProviderName, opt =>
             {
                 opt.HostName = Options.HostName;
-                opt.UserName = Options.Password;
+                opt.UserName = Options.UserName;
+                opt.Password = Options.Password;
                 opt.ConnectionPoolCount = opt.ConnectionPoolCount;
                 opt.ConsumeOptions = opt.ConsumeOptions;
                 opt.HostNames = opt.HostNames;
@@ -35,9 +37,9 @@ namespace Ray2.RabbitMQ.Test
             });
             services.AddLogging();
             Mock<IInternalConfiguration> internalConfiguration = new Mock<IInternalConfiguration>();
-            //var type = typeof(TestEvent);
-            //string name = type.FullName;
-            //internalConfiguration.Setup(f => f.GetEvenType(name, out type)).Returns(true);
+            var type = typeof(TestEvent);
+            string name = type.FullName;
+            internalConfiguration.Setup(f => f.GetEvenType(name, out type)).Returns(true);
             services.AddSingleton<IInternalConfiguration>(internalConfiguration.Object);
             services.AddSingleton(typeof(IKeyedServiceCollection<,>), typeof(KeyedServiceCollection<,>));
             services.AddSingletonNamedService<ISerializer, JsonSerializer>(SerializationType.JsonUTF8);

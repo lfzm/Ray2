@@ -25,6 +25,11 @@ namespace Ray2.RabbitMQ
             this._channel = channelFactory.GetChannel();
         }
 
+        public void Close()
+        {
+            this._channel.Close();
+        }
+
         public bool IsAvailable()
         {
             return this._channel.IsOpen();

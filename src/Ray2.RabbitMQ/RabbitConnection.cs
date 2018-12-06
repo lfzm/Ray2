@@ -38,5 +38,10 @@ namespace Ray2.RabbitMQ
             }
             return new RabbitChannel(this);
         }
+
+        public bool IsOpen()
+        {
+            return this.Connection.IsOpen;
+        }
     }
 }

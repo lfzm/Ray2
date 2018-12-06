@@ -32,7 +32,7 @@ namespace Ray2.RabbitMQ
         /// Stop listening
         /// </summary>
         /// <returns></returns>
-        Task Stop();
+        Task Close();
 
     }
 }

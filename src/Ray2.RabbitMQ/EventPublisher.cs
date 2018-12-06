@@ -47,10 +47,12 @@ namespace Ray2.RabbitMQ
             }
             return true;
         }
-        public Task<bool> Publish(string topic, EventModel model, IRabbitProducer producer)
+        public async Task<bool> Publish(string topic, EventModel model, IRabbitProducer producer)
         {
             var message = new PublishMessage(model, this._serializer);
-            return producer.Publish(topic, topic, message);
+            bool ret = await producer.Publish(topic, topic, message);
+            this.EnqueuePool(producer);
+            return ret;
         }
 
         public IRabbitProducer GetProducer()
@@ -60,16 +62,19 @@ namespace Ray2.RabbitMQ
             {
                 if (producer.IsAvailable())
                 {
-                    ProducersPool.Enqueue(producer);
                     return producer;
+                }
+                else
+                {
+                    Interlocked.CompareExchange(ref this.MaxChannelCount, 1, 0);
                 }
             }
             else
             {
-                if (Interlocked.Decrement(ref this.MaxChannelCount) > 0)
+                if (this.MaxChannelCount > 0)
                 {
+                    Interlocked.Decrement(ref this.MaxChannelCount);
                     producer = new RabbitProducer(this._serviceProvider, this.providerName, this._serializer);
-                    ProducersPool.Enqueue(producer);
                     return producer;
                 }
                 else
@@ -78,6 +83,11 @@ namespace Ray2.RabbitMQ
                 }
             }
             return this.GetProducer();
+        }
+
+        public void EnqueuePool(IRabbitProducer producer)
+        {
+            ProducersPool.Enqueue(producer);
         }
     }
 }

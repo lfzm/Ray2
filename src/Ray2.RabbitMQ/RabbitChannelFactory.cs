@@ -27,8 +27,9 @@ namespace Ray2.RabbitMQ
         public IRabbitChannel GetChannel()
         {
             IRabbitConnection connection;
-            if (Interlocked.Decrement(ref this.RemainderCount) > 0)
+            if (this.RemainderCount > 0)
             {
+                Interlocked.Decrement(ref this.RemainderCount);
                 connection = new RabbitConnection(this._serviceProvider, this.Options);
             }
             else
@@ -43,9 +44,18 @@ namespace Ray2.RabbitMQ
                     return this.GetChannel();
                 }
             }
-            //Continue to line up
-            ConnectionPoll.Enqueue(connection);
-            return connection.CreateChannel();
+            if (connection.IsOpen())
+            {
+                //Continue to line up
+                var channel = connection.CreateChannel();
+                ConnectionPoll.Enqueue(connection);
+                return channel;
+            }
+            else
+            {
+                Interlocked.CompareExchange(ref this.RemainderCount, 1, 0);
+                return this.GetChannel();
+            }
         }
     }
 }

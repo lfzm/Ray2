@@ -15,10 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Model\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\Ray2.RabbitMQ\Ray2.RabbitMQ.csproj" />
   </ItemGroup>
 

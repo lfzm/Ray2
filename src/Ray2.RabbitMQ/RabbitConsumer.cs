@@ -26,7 +26,7 @@ namespace Ray2.RabbitMQ
         public RabbitConsumeOptions Options { get; private set; }
         public IEventProcessor Processor { get; private set; }
         public bool NeedRestart { get; private set; }
-        public RabbitConsumer(string providerName, IServiceProvider serviceProvider, ISerializer serializer)
+        public RabbitConsumer(IServiceProvider serviceProvider, string providerName, ISerializer serializer)
         {
             this.providerName = providerName;
             this._serviceProvider = serviceProvider;
@@ -36,7 +36,11 @@ namespace Ray2.RabbitMQ
             var _channelFactory = serviceProvider.GetRequiredServiceByName<IRabbitChannelFactory>(this.providerName);
             this._channel = _channelFactory.GetChannel();
         }
-
+        public Task Close()
+        {
+            this._channel.Close();
+            return Task.CompletedTask;
+        }
         public bool IsAvailable()
         {
             //Restart the queue if there is an exception in the callback
@@ -88,13 +92,9 @@ namespace Ray2.RabbitMQ
             basicConsumer.ConsumerTag = this._channel.Model.BasicConsume(this.Queue, options.AutoAck, basicConsumer);
             return Task.CompletedTask;
         }
-        public Task Stop()
-        {
-            this._channel.Close();
-            return Task.CompletedTask;
-        }
+      
 
-        private void Channel_CallbackException(object sender, CallbackExceptionEventArgs e)
+        public void Channel_CallbackException(object sender, CallbackExceptionEventArgs e)
         {
             this._logger.LogError(e.Exception.InnerException ?? e.Exception, $"RabbitMQ callback exception; {this.Exchange}-{this.Queue}");
             this.NeedRestart = true;
@@ -131,7 +131,7 @@ namespace Ray2.RabbitMQ
             catch (Exception ex)
             {
                 this._logger.LogError(ex.InnerException ?? ex, $"Notification processor processing failed; {this.Exchange}-{this.Queue}");
-                if (this.Options.NoticeRetriesCount <= count)
+                if (this.Options.NoticeRetriesCount > count)
                 {
                     await Process(model, count + 1);
                 }
@@ -145,7 +145,7 @@ namespace Ray2.RabbitMQ
                 //Get event type
                 if (this._internalConfiguration.GetEvenType(message.TypeCode, out Type type))
                 {
-                    object data = this._serializer.Deserialize(type, bytes);
+                    object data = this._serializer.Deserialize(type, message.Data);
                     if (data is IEvent e)
                     {
                         EventModel eventModel = new EventModel(e, message.TypeCode, message.Version);
@@ -169,8 +169,5 @@ namespace Ray2.RabbitMQ
                 return null;
             }
         }
-    
-
-
     }
 }

@@ -15,6 +15,8 @@ namespace Ray2.RabbitMQ
         /// </summary>
         /// <returns></returns>
         bool IsAvailable();
+
+        void Close();
         Task<bool> Publish(string exchange, string routingKey, PublishMessage message);
     }
 }

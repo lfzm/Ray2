@@ -40,7 +40,7 @@ namespace Ray2.RabbitMQ
             IList<IRabbitConsumer> consumers = new List<IRabbitConsumer>();
             var options = this.GetConsumeOptions(group, topic);
             IEventProcessor processor = this._eventProcessorFactory.Create(group);
-            IRabbitConsumer consumer = new RabbitConsumer(providerName, _serviceProvider, this._serializer);
+            IRabbitConsumer consumer = new RabbitConsumer(_serviceProvider,providerName,  this._serializer);
             await consumer.Subscribe(group, topic, processor, options);
             //Collected to detect whether it is alive
             consumers.Add(consumer);
@@ -60,7 +60,6 @@ namespace Ray2.RabbitMQ
                 return options;
             else
                 return new RabbitConsumeOptions();
-
         }
 
         public async Task Stop()
@@ -69,7 +68,7 @@ namespace Ray2.RabbitMQ
             {
                 foreach (var consumer in consumers)
                 {
-                    await consumer.Stop();
+                    await consumer.Close();
                 }
             }
         }
@@ -112,7 +111,7 @@ namespace Ray2.RabbitMQ
                 if (consumer.IsAvailable())
                 {
                     await this.Subscribe(consumer.Queue, consumer.Exchange);
-                    await consumer.Stop();
+                    await consumer.Close();
                     return true;
                 }
                 else

@@ -10,5 +10,6 @@ namespace Ray2.RabbitMQ
         IConnection Connection { get; }
         IRabbitChannel CreateChannel();
         void Close();
+        bool IsOpen();
     }
 }
