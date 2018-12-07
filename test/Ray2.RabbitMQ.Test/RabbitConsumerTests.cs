@@ -36,21 +36,25 @@ namespace Ray2.RabbitMQ.Test
         [Fact]
         public void should_Subscribe_Normal()
         {
+            this.exchange += "Subscribe_Normal";
+            this.queue += "Subscribe_Normal";
             EventModel model = new EventModel(TestEvent.Create(1));
             PublishMessage msg = new PublishMessage(model, this.serializer);
             this.Given(f => f.GivenInitProcessor())
-                .When(f => f.WhenSubscribe("sub"))
-                .When(f => f.WhenPublish(msg, "sub", 1))
+                .When(f => f.WhenSubscribe())
+                .When(f => f.WhenPublish(msg, 1))
                 .Then(f => f.ThenProcess(model))
                 .BDDfy();
         }
         [Fact]
         private void should_Process_RetryNotice()
         {
+            this.exchange += "Process_RetryNotice";
+            this.queue += "Process_RetryNotice";
             EventModel model = new EventModel(TestEvent.Create(1));
             this.consumeOptions.NoticeRetriesCount = 3;
             this.Given(f => f.GivenInitProcessorFailure())
-                .When(f => f.WhenSubscribe("process"))
+                .When(f => f.WhenSubscribe())
                 .When(f => f.WhenProcess(model))
                 .Then(f => f.ThenSuccess())
                 .BDDfy();
@@ -58,12 +62,14 @@ namespace Ray2.RabbitMQ.Test
         [Fact]
         private void should_IsExpand_True()
         {
+            this.exchange += "expand";
+            this.queue += "expand";
             this.consumer = new RabbitConsumer(serviceProvider, FakeConfig.ProviderName, serializer);
             EventModel model = new EventModel(TestEvent.Create(1));
             PublishMessage msg = new PublishMessage(model, this.serializer);
             this.Given(f => f.GivenInitProcessor())
-                .When(f => f.WhenSubscribe("expand"))
-                .When(f => f.WhenPublish(msg, "expand", 500))
+                .When(f => f.WhenSubscribe())
+                .When(f => f.WhenPublish(msg, 500))
                 .When(f => f.WhenIsExpand())
                 .Then(f => f.ThenSuccess())
                 .BDDfy();
@@ -74,10 +80,11 @@ namespace Ray2.RabbitMQ.Test
         {
             this.eventProcessor.Setup(f => f.Tell(It.IsNotNull<EventModel>()))
               .Returns(Task.FromResult(true))
-              .Callback<EventModel>(f => {
+              .Callback<EventModel>(f =>
+              {
                   this.model = f;
                   Task.Delay(100).GetAwaiter().GetResult();
-                  });
+              });
         }
 
         private void GivenInitProcessorFailure()
@@ -86,9 +93,9 @@ namespace Ray2.RabbitMQ.Test
             .Throws(new Exception("Failure"));
         }
 
-        private void WhenSubscribe(string type)
+        private void WhenSubscribe()
         {
-            consumer.Subscribe(this.queue+ type, this.exchange+ type, this.eventProcessor.Object, consumeOptions).GetAwaiter().GetResult();
+            consumer.Subscribe(this.queue, this.exchange, this.eventProcessor.Object, consumeOptions).GetAwaiter().GetResult();
         }
 
         private void WhenIsExpand()
@@ -103,7 +110,7 @@ namespace Ray2.RabbitMQ.Test
             //Three retry times take about 6.5 seconds, and if it is exceeded, it will fail.
             Assert.True(task.Wait(6500));
         }
-        private void WhenPublish(PublishMessage msg,string type, int count = 1)
+        private void WhenPublish(PublishMessage msg, int count = 1)
         {
             ConnectionFactory factory = new ConnectionFactory
             {
@@ -117,10 +124,9 @@ namespace Ray2.RabbitMQ.Test
             var sendBytes = this.serializer.Serialize(msg);
             for (int i = 0; i < count; i++)
             {
-                channel.BasicPublish(this.exchange+ type, this.exchange+ type, null, sendBytes);
+                channel.BasicPublish(this.exchange, this.exchange, null, sendBytes);
             }
         }
-
         private void ThenProcess(EventModel m)
         {
             Task.Delay(5000).GetAwaiter().GetResult();

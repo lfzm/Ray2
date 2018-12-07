@@ -7,5 +7,6 @@
         public bool AutoAck { get; set; }
         public int NoticeRetriesCount { get; set; }
         public ushort OneFetchCount { get; set; } = 20;
+        public int MaxConsumerCount { get; set; } = 10;
     }
 }

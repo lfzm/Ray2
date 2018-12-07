@@ -23,7 +23,7 @@ namespace Ray2.RabbitMQ
         private readonly ILogger _logger;
         private readonly Timer _monitorTimer;
         private readonly string providerName;
-        private readonly Dictionary<string, IList<IRabbitConsumer>> consumerList = new Dictionary<string, IList<IRabbitConsumer>>();
+        private readonly Dictionary<string, IList<IRabbitConsumer>> ConsumerPool = new Dictionary<string, IList<IRabbitConsumer>>();
         public EventSubscriber(IServiceProvider serviceProvider, string providerName)
         {
             this.providerName = providerName;
@@ -37,14 +37,21 @@ namespace Ray2.RabbitMQ
         }
         public async Task Subscribe(string group, string topic)
         {
-            IList<IRabbitConsumer> consumers = new List<IRabbitConsumer>();
             var options = this.GetConsumeOptions(group, topic);
             IEventProcessor processor = this._eventProcessorFactory.Create(group);
-            IRabbitConsumer consumer = new RabbitConsumer(_serviceProvider,providerName,  this._serializer);
+            IRabbitConsumer consumer = new RabbitConsumer(_serviceProvider, providerName, this._serializer);
             await consumer.Subscribe(group, topic, processor, options);
             //Collected to detect whether it is alive
-            consumers.Add(consumer);
-            this.consumerList.Add($"{group}@{topic}", consumers);
+            if (this.ConsumerPool.TryGetValue($"{group}@{topic}", out IList<IRabbitConsumer> list))
+            {
+                list.Add(consumer);
+            }
+            else
+            {
+                IList<IRabbitConsumer> consumers = new List<IRabbitConsumer>();
+                consumers.Add(consumer);
+                this.ConsumerPool.Add($"{group}@{topic}", consumers);
+            }
         }
 
         /// <summary>
@@ -64,14 +71,16 @@ namespace Ray2.RabbitMQ
 
         public async Task Stop()
         {
-            foreach (var consumers in consumerList.Values)
+            foreach (var consumers in ConsumerPool.Values)
             {
                 foreach (var consumer in consumers)
                 {
                     await consumer.Close();
                 }
             }
+            ConsumerPool.Clear();
         }
+
 
         /// <summary>
         /// Monitor consumer availability and expansion
@@ -79,15 +88,18 @@ namespace Ray2.RabbitMQ
         /// <returns></returns>
         public async Task MonitorConsumer()
         {
-            foreach (var key in consumerList.Keys)
+            foreach (var key in ConsumerPool.Keys)
             {
-                IList<IRabbitConsumer> consumers = consumerList[key];
+                IList<IRabbitConsumer> consumers = ConsumerPool[key];
                 //Check if you need to expand
                 //Check that more than half of the consumers vote to expand and expand
                 if ((consumers.Count / 2) <= consumers.Where(f => f.IsExpand()).Count())
                 {
                     IRabbitConsumer consumer = consumers.First();
-                    await this.Subscribe(consumer.Queue, consumer.Exchange);
+                    if (consumers.Count < consumer.Options.MaxConsumerCount)
+                    {
+                        await this.Subscribe(consumer.Queue, consumer.Exchange);
+                    }
                 }
 
                 //Check if the consumer is restarted

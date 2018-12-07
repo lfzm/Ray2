@@ -2,6 +2,7 @@
 using Moq;
 using Orleans.Runtime;
 using Ray2.Configuration;
+using Ray2.EventProcess;
 using Ray2.MQ;
 using Ray2.RabbitMQ.Configuration;
 using Ray2.RabbitMQ.Test.Model;
@@ -14,12 +15,24 @@ namespace Ray2.RabbitMQ.Test
 {
     public static class FakeConfig
     {
+        public static Mock<IEventProcessorFactory> EventProcessorFactory = new Mock<IEventProcessorFactory>();
+        public static Mock<IInternalConfiguration> InternalConfiguration = new Mock<IInternalConfiguration>();
+
         public const string ProviderName = "Default";
         public static RabbitOptions Options = new RabbitOptions()
         {
-            HostName = "127.0.0.1",
+            HostName = "192.168.1.250",
             UserName= "admin",
-            Password = "admin"
+            Password = "admin",
+            ConsumeOptions = new List<RabbitConsumeOptions>
+            {
+                new RabbitConsumeOptions()
+                {
+                    Group="subGroup",
+                    Topic="subTopic",
+                    NoticeRetriesCount=3
+                }
+            }
         };
         public static IServiceProvider BuildServiceProvider()
         {
@@ -29,21 +42,21 @@ namespace Ray2.RabbitMQ.Test
                 opt.HostName = Options.HostName;
                 opt.UserName = Options.UserName;
                 opt.Password = Options.Password;
-                opt.ConnectionPoolCount = opt.ConnectionPoolCount;
-                opt.ConsumeOptions = opt.ConsumeOptions;
-                opt.HostNames = opt.HostNames;
-                opt.SerializationType = opt.SerializationType;
-                opt.VirtualHost = opt.VirtualHost;
+                opt.ConnectionPoolCount = Options.ConnectionPoolCount;
+                opt.ConsumeOptions = Options.ConsumeOptions;
+                opt.HostNames = Options.HostNames;
+                opt.SerializationType = Options.SerializationType;
+                opt.VirtualHost = Options.VirtualHost;
+                opt.ConsumeOptions = Options.ConsumeOptions;
             });
             services.AddLogging();
-            Mock<IInternalConfiguration> internalConfiguration = new Mock<IInternalConfiguration>();
             var type = typeof(TestEvent);
-            string name = type.FullName;
-            internalConfiguration.Setup(f => f.GetEvenType(name, out type)).Returns(true);
-            services.AddSingleton<IInternalConfiguration>(internalConfiguration.Object);
+            InternalConfiguration.Setup(f => f.GetEvenType(type.FullName, out type)).Returns(true);
+
+            services.AddSingleton<IInternalConfiguration>(InternalConfiguration.Object);
             services.AddSingleton(typeof(IKeyedServiceCollection<,>), typeof(KeyedServiceCollection<,>));
             services.AddSingletonNamedService<ISerializer, JsonSerializer>(SerializationType.JsonUTF8);
-
+            services.AddSingleton<IEventProcessorFactory>(EventProcessorFactory.Object);
             services.AddSingletonNamedService<IEventPublisher>(ProviderName, (sp, n) =>
             {
                 return new EventPublisher(sp, n);
