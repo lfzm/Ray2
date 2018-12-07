@@ -107,8 +107,8 @@ namespace Ray2.RabbitMQ.Test
         private void WhenProcess(EventModel m)
         {
             var task = this.consumer.Process(m, 0);
-            //Three retry times take about 6.5 seconds, and if it is exceeded, it will fail.
-            Assert.True(task.Wait(6500));
+            //Three retry times take about 7 seconds, and if it is exceeded, it will fail.
+            Assert.True(task.Wait(10000));
         }
         private void WhenPublish(PublishMessage msg, int count = 1)
         {

@@ -17,9 +17,9 @@ namespace Ray2.RabbitMQ.Test
         private readonly IServiceProvider serviceProvider;
         private readonly ISerializer serializer;
         private readonly EventSubscriber subscriber;
-        private string group = "subGroup";
-        private string topic = "subTopic";
-        private string exchange = "subTopic";
+        private string group = "EventSubscriberTests";
+        private string topic = "EventSubscriberTests";
+        private string exchange = "EventSubscriberTests";
         private EventModel model;
         public EventSubscriberTests()
         {
@@ -39,7 +39,9 @@ namespace Ray2.RabbitMQ.Test
         {
             EventModel model = new EventModel(TestEvent.Create(1));
             PublishMessage msg = new PublishMessage(model, this.serializer);
-
+            this.topic += "Subscribe";
+            this.exchange += "Subscribe";
+            this.group += "Subscribe";
             this.Given(f => f.GivenInitProcessor())
                 .When(f => f.WhenSubcribe())
                 .When(f => f.WhenPublish(msg, 1))
