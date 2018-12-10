@@ -5,9 +5,10 @@ namespace Ray2
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class EventPublishAttribute : Attribute
     {
-        public EventPublishAttribute(string topic)
+        public EventPublishAttribute(string topic,string mqprovider)
         {
             this.Topic = topic;
+            this.MQProvider = mqprovider;
         }
         /// <summary>
         /// This is a message queue provider

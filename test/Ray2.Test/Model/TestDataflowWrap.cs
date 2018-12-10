@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Ray2.Test.Model
 {
-    public class TestDataflowWrap: IDataflowBufferWrap
+    public class TestDataflowWrap : IDataflowBufferWrap
     {
         public TestDataflowWrap()
         {
@@ -17,9 +17,9 @@ namespace Ray2.Test.Model
 
         public TaskCompletionSource<bool> TaskSource { get; }
 
-        public  void Valid(TestDataflowWrap state)
+        public void Valid(TestDataflowWrap state)
         {
             Assert.Equal(state.Test, this.Test);
         }
-        }
+    }
 }

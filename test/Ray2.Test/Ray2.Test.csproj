@@ -18,11 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Serialization\" />
     <Folder Include="Configuration\" />
     <Folder Include="EventProcess\" />
-    <Folder Include="EventSource\" />
-    <Folder Include="MQ\" />
   </ItemGroup>
 
   <ItemGroup>
