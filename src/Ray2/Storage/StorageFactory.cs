@@ -53,8 +53,10 @@ namespace Ray2.Storage
             {
                 EventStorageInfo storageInfo = new EventStorageInfo();
                 storageInfo.EventSource = name;
+                storageInfo.Provider = this._options.StorageProvider;
                 storageInfo.Tables = new List<string>();
                 storageInfo.Tables.Add(name);
+                storageList.Add(storageInfo);
             }
             if (storageList == null || storageList.Count == 0)
             {
@@ -67,6 +69,7 @@ namespace Ray2.Storage
                 {
                     throw new ArgumentNullException($"{name} Event source does not have a corresponding storage table.");
                 }
+                storage.Tables = storage.Tables.Select(f => StorageTableNameBuild.BuildTableName(f, StorageType.EventSource)).ToList();
                 storage.Storage = this._serviceProvider.GetRequiredServiceByName<IEventStorage>(storage.Provider);
             }
             return storageList;
@@ -74,7 +77,7 @@ namespace Ray2.Storage
 
         public async Task<IStateStorage> GetStateStorage(string name, StorageType storageType, string stateKey)
         {
-            if (storageType == StorageType.EventSource)
+            if (storageType != StorageType.EventProcessState && storageType!= StorageType.EventSourceSnapshot)
             {
                 throw new ArgumentNullException("The EventSource store cannot be used with IStateStorage , please call GetEventStorage to get IEventStorage for storage.");
             }
@@ -122,7 +125,9 @@ namespace Ray2.Storage
             else
             {
                 if (!string.IsNullOrEmpty(name))
+                {
                     tables.Add(name);
+                }
             }
             if (tables == null || tables.Count == 0)
             {
@@ -131,7 +136,7 @@ namespace Ray2.Storage
             return tables.Select(f => StorageTableNameBuild.BuildTableName(f, storageType)).ToList();
         }
 
-        private IStorageSharding GetStorageSharding()
+        public IStorageSharding GetStorageSharding()
         {
             if (string.IsNullOrEmpty(this._options.ShardingStrategy))
                 return null;

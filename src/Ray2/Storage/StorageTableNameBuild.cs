@@ -25,9 +25,6 @@ namespace Ray2.Storage
                 default:
                     return "";
             }
-           
         }
-
-     
     }
 }
