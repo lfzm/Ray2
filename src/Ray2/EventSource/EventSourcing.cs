@@ -5,7 +5,6 @@ using Ray2.Internal;
 using Ray2.Storage;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -205,7 +204,7 @@ namespace Ray2.EventSource
             return events;
         }
 
-        protected List<IEvent> ConvertEvent(IList<EventModel> eventModels)
+        public List<IEvent> ConvertEvent(IList<EventModel> eventModels)
         {
             List<IEvent> events = new List<IEvent>();
             if (eventModels == null || eventModels.Count == 0)
@@ -217,7 +216,7 @@ namespace Ray2.EventSource
             }
             return events;
         }
-        protected List<IEvent> ConvertEvent<TStateKey>(IList<EventModel> eventModels)
+        public List<IEvent> ConvertEvent<TStateKey>(IList<EventModel> eventModels)
         {
             List<IEvent> events = new List<IEvent>();
             if (eventModels == null || eventModels.Count == 0)

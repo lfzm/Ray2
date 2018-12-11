@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Ray2.Test.Serialization
 {
-    class JsonSerializerTests
+   public class JsonSerializerTests
     {
     }
 }

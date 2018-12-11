@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Ray2.EventSource
+namespace Ray2
 {
     /// <summary>
     ///  Transaction batch event

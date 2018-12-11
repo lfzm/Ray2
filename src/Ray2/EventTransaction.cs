@@ -4,14 +4,14 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 
-namespace Ray2.EventSource
+namespace Ray2
 {
     /// <summary>
     /// Transaction batch event
     /// </summary>
     /// <typeparam name="TState"><see cref="IState{TStateKey}"/></typeparam>
     /// <typeparam name="TStateKey"></typeparam>
-    public class EventTransaction<TState, TStateKey> : IEventTransaction<TState, TStateKey>, IDisposable
+    public class EventTransaction<TState, TStateKey> : IEventTransaction<TState, TStateKey>
             where TState : IState<TStateKey>, new()
     {
         private readonly RayGrain<TState, TStateKey> rayGrain;
@@ -19,7 +19,7 @@ namespace Ray2.EventSource
 
         private IList<IEvent<TStateKey>> transactionEvents = new List<IEvent<TStateKey>>();
         private IList<IEvent> publishEvents = new List<IEvent>();
-        private int transactionState = 0;
+        private TransactionState transactionState =  TransactionState.NotCommit;
         public EventTransaction(RayGrain<TState, TStateKey> rayGrain, IEventSourcing<TState, TStateKey> eventSourcing)
         {
             this.rayGrain = rayGrain;
@@ -30,7 +30,7 @@ namespace Ray2.EventSource
         public async Task<bool> Commit()
         {
             if (this.IsProcessed())
-                transactionState = 1;
+                transactionState =  TransactionState.Commit;
             if (transactionEvents.Count > 0)
             {
                 //Save all events in this transaction
@@ -47,14 +47,13 @@ namespace Ray2.EventSource
             }
             return false;
         }
-        public void Dispose()
-        {
-            this.rayGrain.EndTransaction();
-        }
+   
         public void Rollback()
         {
             if (this.IsProcessed())
-                transactionState = 2;
+            {
+                transactionState = TransactionState.Rollback;
+            }
 
             transactionEvents.Clear();
             publishEvents.Clear();
@@ -63,22 +62,25 @@ namespace Ray2.EventSource
         public void WriteEventAsync(IEvent<TStateKey> @event, bool isPublish = true)
         {
             if (@event == null)
+            {
                 throw new ArgumentNullException("WriteEventAsync event cannot be empty");
-
+            }
             @event.Version = State.NextVersion();
             @event.StateId = State.StateId;
             this.State.Player(@event);
             transactionEvents.Add(@event);
             if (isPublish)
+            {
                 publishEvents.Add(@event);
+            }
         }
         private bool IsProcessed()
         {
-            if (this.transactionState == 0)
+            if (this.transactionState == TransactionState.NotCommit)
                 return true;
-            else if (this.transactionState == 1)
+            else if (this.transactionState == TransactionState.Commit)
                 throw new Exception("The transaction has been commit");
-            else if (this.transactionState == 2)
+            else if (this.transactionState == TransactionState.Rollback)
                 throw new Exception("The transaction has been rolled back");
             else
                 throw new Exception("The transaction has been processed");
@@ -96,6 +98,13 @@ namespace Ray2.EventSource
             stream.Position = 0;
             return (TState)formatter.Deserialize(stream);
         }
+    }
+
+    public enum TransactionState
+    {
+        NotCommit = 0,
+        Commit=1,
+        Rollback=2
     }
 
 

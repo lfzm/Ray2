@@ -70,7 +70,7 @@ namespace Ray2.Test.MQ
         private void GivenInitEventPublisher()
         {
             eventPublisher.Setup(f => f.Publish(topic, It.IsNotNull<EventModel>())).Returns(Task.FromResult(true)).Callback((string topic,EventModel m) =>model=m) ;
-            eventPublisher.Setup(f => f.Publish(topic, It.IsNotNull<List<EventModel>>())).Returns(Task.FromResult(true)).Callback((string topic, EventModel m) => model = m);
+            eventPublisher.Setup(f => f.Publish(topic, It.IsNotNull<List<EventModel>>())).Returns(Task.FromResult(true)).Callback((string topic,EventModel m) => model = m);
         }
 
         private void WhenPublish(IEvent @event, string topic, string mqProviderName)

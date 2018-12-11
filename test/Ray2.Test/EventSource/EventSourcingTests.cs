@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Ray2.Test.EventSource
 {
-    class EventSourcingTests
+    public class EventSourcingTests
     {
     }
 }

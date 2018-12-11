@@ -17,7 +17,7 @@ namespace Ray2
     public abstract class RayGrain<TState, TStateKey> : Grain, IRay
         where TState : IState<TStateKey>, new()
     {
-        protected internal TState State { get; private set; }
+        public TState State { get; private set; }
         protected abstract TStateKey StateId { get; }
 
         protected ILogger Logger { get; set; }
