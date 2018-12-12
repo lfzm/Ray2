@@ -125,7 +125,7 @@ namespace Ray2.RabbitMQ
             {
                 if (count > 0)
                     await Task.Delay(count * 1000);
-
+               
                 await this.Processor.Tell(model);
             }
             catch (Exception ex)

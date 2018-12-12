@@ -11,11 +11,8 @@ namespace Ray2.Grain.Events
             Amount = amount;
             Balance = balance;
         }
-        [DataMember]
         public long ToAccountId { get; set; }
-        [DataMember]
         public decimal Amount { get; set; }
-        [DataMember]
         public decimal Balance { get; set; }
      
     }

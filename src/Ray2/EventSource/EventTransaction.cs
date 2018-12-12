@@ -42,7 +42,7 @@ namespace Ray2.EventSource
                     //Turn off transaction status in the primary service
                     this.rayGrain.EndTransaction(events);
 
-                    for (int i = 0; i < transactionEvents.Count; i++)
+                    while (transactionEvents.Count>0)
                     {
                         var e = transactionEvents.Dequeue();
                         if (e.IsPublish)

@@ -9,9 +9,7 @@ namespace Ray2.Grain.Events
         {
             Amount = amount;
         }
-        [DataMember]
         public decimal Amount { get; set; }
-        [DataMember]
         public decimal Balance { get; set; }
      
     }

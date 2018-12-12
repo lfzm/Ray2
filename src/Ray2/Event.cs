@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text;
@@ -9,7 +10,6 @@ namespace Ray2
     /// Event abstract class
     /// </summary>
     /// <typeparam name="TStateKey">StateId Type</typeparam>
-   [DataContract]
     public abstract class Event<TStateKey> : IEvent<TStateKey>
     {
         public Event()
@@ -28,27 +28,24 @@ namespace Ray2
         /// <summary>
         /// State Id  <see cref="IState{TStateKey}"/>  
         /// </summary>
-        [DataMember]
         public virtual TStateKey StateId { get; set; }
         /// <summary>
         ///  the version number of <see cref="IState{TStateKey}"/>  
         /// </summary>
-        [DataMember]
         public virtual long Version { get; set; }
         /// <summary>
         ///  Event release timestamp
         /// </summary>
-        [DataMember]
+        [JsonProperty]
         public virtual long Timestamp { get; private set; }
         /// <summary>
         /// Event type fullname
         /// </summary>
-        [DataMember]
+        [JsonProperty]
         public virtual string TypeCode { get; private set; }
         /// <summary>
         /// Relation Event
         /// </summary>
-        [DataMember]
         public virtual string RelationEvent { get;  set; }
         /// <summary>
         ///  Generate Relation key

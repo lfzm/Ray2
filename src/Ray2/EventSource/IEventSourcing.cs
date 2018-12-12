@@ -31,8 +31,6 @@ namespace Ray2.EventSource
         Task SaveSnapshotAsync(TState state);
         Task ClearSnapshotAsync();
 
-        TState TraceAsync(TState state, IEvent<TStateKey> @event);
-        TState TraceAsync(TState state, IList<IEvent<TStateKey>> @events);
     }
 
 

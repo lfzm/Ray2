@@ -27,7 +27,6 @@ namespace Ray2.Grain.States
             evt.Balance = this.Balance;
         }
 
-        [DataMember]
         public decimal Balance { get; set; }
     }
 }

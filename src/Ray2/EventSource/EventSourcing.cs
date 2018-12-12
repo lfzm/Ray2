@@ -117,16 +117,16 @@ namespace Ray2.EventSource
                     if (state.Version == 0)
                     {
                         //Initialize data first
-                       await this.SaveSnapshotAsync(state);
+                        await this.SaveSnapshotAsync(state);
                     }
                 }
             }
             //Get current event
-            List<IEvent<TStateKey>> events = (List<IEvent<TStateKey>>)await this.GetListAsync(new EventQueryModel(state.Version));
+            IList<IEvent<TStateKey>> events = await this.GetListAsync(new EventQueryModel(state.Version));
             if (events == null || events.Count == 0)
                 return state;
-           
-            state = this.TraceAsync(state, events);
+
+            state.Player(events);
             await this.SaveSnapshotAsync(state); //save snapshot
             return state;
         }
@@ -155,23 +155,6 @@ namespace Ray2.EventSource
             }
         }
 
-        public TState TraceAsync(TState state, IEvent<TStateKey> @event)
-        {
-            if (@event != null)
-                state.Player(@event);
-           
-            return state;
-        }
-        public TState TraceAsync(TState state, IList<IEvent<TStateKey>> events)
-        {
-            if (events == null || events.Count == 0)
-                return state;
-            foreach (var @event in events)
-            {
-                state = this.TraceAsync(state, @event);
-            }
-            return state;
-        }
     }
 
     public class EventSourcing : IEventSourcing

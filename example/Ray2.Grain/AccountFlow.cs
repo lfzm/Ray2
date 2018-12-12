@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Ray2.Grain
 {
-    [EventProcessor(typeof(Account), "rabbitmq",  "postgresql",OnceProcessCount =1000)]
+    [EventProcessor(typeof(Account), "rabbitmq",  "postgresql",OnceProcessCount =2000)]
     public class AccountFlow : RayProcessorGrain<AccountState, long>
     {
         private readonly ILogger logger;
@@ -34,7 +34,7 @@ namespace Ray2.Grain
 
         private  Task AddBalanceHandle(AccountAddBalanceEvent evt)
         {
-            this.logger.LogError($"加款：{evt.Amount}; 余额：{evt.Balance}");
+            //this.logger.LogError($"加款：{evt.Amount}; 余额：{evt.Balance}");
             return Task.CompletedTask;
         }
     }

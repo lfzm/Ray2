@@ -121,15 +121,16 @@ namespace Ray2.EventProcess
                     List<IEvent> events = new List<IEvent>();
                     while (eventBuffer.TryReceive(out var model))
                     {
-                        if (events.Count > this.Options.OnceProcessCount)
-                            break;
                         if (model.Version < this.State.NextVersion())
                             continue;
                         events.Add(model.Event);
+                        if (events.Count > this.Options.OnceProcessCount)
+                            break;
+
                     }
                     //Exclude duplicate events
                     events = events.OrderBy(w => w.Version).ToList();
-                    await this.TriggerEventProcess(events);
+                    await this.TriggerEventProcessBatch(events);
                 }
                 else
                 {
@@ -147,10 +148,8 @@ namespace Ray2.EventProcess
         private async Task TriggerEventProcess(IEvent @event)
         {
             if (@event.Version < State.NextVersion())
-            {
-                this._logger.LogError($"{this.StateId}+{@event.Version} Repeated execution of events");
                 return;
-            }
+
             if (@event.Version > State.NextVersion())
             {
                 //Get missing events
@@ -171,20 +170,38 @@ namespace Ray2.EventProcess
             {
                 await this._eventProcessor(@event);
                 this.State.Player(@event);
-
-                if (this.Options.StatusOptions.StatusMode == StatusMode.Synchronous)
-                    await this.SaveStateAsync();
-                else if (this.Options.StatusOptions.StatusMode == StatusMode.Asynchronous)
-                {
-                    if (this.exeEventCount > 200)
-                        await this.SaveStateAsync();
-                    else
-                        this.exeEventCount++;
-                }
+                await this.LazySaveStateAsync();
             }
         }
         private async Task TriggerEventProcess(List<IEvent> events)
         {
+            if (events.Count == 0)
+                return;
+            using (var tokenSource = new CancellationTokenSource())
+            {
+                var tasks = events.Select(@event => this._eventProcessor(@event));
+                var taskAllEvent = Task.WhenAll(tasks);
+                using (var taskTimeOut = Task.Delay(this.Options.OnceProcessTimeout, tokenSource.Token))
+                {
+                    await Task.WhenAny(taskAllEvent, taskTimeOut);
+                    if (taskAllEvent.Status == TaskStatus.RanToCompletion)
+                    {
+                        tokenSource.Cancel();
+                        this.State.Player(events);
+                        await this.SaveStateAsync();
+                    }
+                    else
+                    {
+                        throw new Exception($"{this.Options.ProcessorName} processing event timeout");
+                    }
+                }
+            }
+        }
+        private async Task TriggerEventProcessBatch(List<IEvent> events)
+        {
+            if (events == null || events.Count == 0)
+                return;
+
             var lastEvent = events.Last();
             if (this.State.Version + events.Count != lastEvent.Version)
             {
@@ -194,46 +211,34 @@ namespace Ray2.EventProcess
                     throw new Exception("Event lost");
             }
             //Group execution. Avoid processing timeouts
-            List<List<IEvent>> eventsGroup = new List<List<IEvent>>();
-            for (int i = 0; i < (events.Count / (this.Options.OnceProcessCount) + 1); i++)
+            if (this.Options.OnceProcessCount < events.Count)
             {
-                var list = events.Skip(i * this.Options.OnceProcessCount).Take(this.Options.OnceProcessCount).ToList();
-                eventsGroup.Add(list);
-            }
-            await this.TriggerEventProcessGroup(eventsGroup);
-
-        }
-        private async Task TriggerEventProcessGroup(List<List<IEvent>> eventsGroup)
-        {
-            if(eventsGroup==null || eventsGroup.Count==0)
-            {
-                return;
-            }
-            foreach (var events in eventsGroup)
-            {
-               var lastEvent = events.LastOrDefault();
-                using (var tokenSource = new CancellationTokenSource())
+                for (int i = 0; i < (events.Count / (this.Options.OnceProcessCount) + 1); i++)
                 {
-                    var tasks = events.Select(@event => this._eventProcessor(@event));
-                    var taskAllEvent = Task.WhenAll(tasks);
-                    using (var taskTimeOut = Task.Delay(this.Options.OnceProcessTimeout, tokenSource.Token))
-                    {
-                        await Task.WhenAny(taskAllEvent, taskTimeOut);
-                        if (taskAllEvent.Status == TaskStatus.RanToCompletion)
-                        {
-                            tokenSource.Cancel();
-                            this.State.Player(lastEvent);
-                            await this.SaveStateAsync();
-                        }
-                        else
-                        {
-                            throw new Exception($"{this.Options.ProcessorName} processing event timeout");
-                        }
-                    }
+                    var list = events.Skip((i * this.Options.OnceProcessCount) - 1).Take(this.Options.OnceProcessCount).ToList();
+                    await this.TriggerEventProcess(list);
                 }
             }
-        }
+            else
+            {
+                await this.TriggerEventProcess(events);
+            }
 
+
+        }
+   
+        public async Task LazySaveStateAsync()
+        {
+            if (this.Options.StatusOptions.StatusMode == StatusMode.Synchronous)
+                await this.SaveStateAsync();
+            else if (this.Options.StatusOptions.StatusMode == StatusMode.Asynchronous)
+            {
+                if (this.exeEventCount > 200)
+                    await this.SaveStateAsync();
+                else
+                    this.exeEventCount++;
+            }
+        }
         public async Task SaveStateAsync()
         {
             if (this.State.Version == 0)

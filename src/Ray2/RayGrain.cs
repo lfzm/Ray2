@@ -194,7 +194,7 @@ namespace Ray2
             //Play master status
             if (events != null && events.Count > 0)
             {
-                this.State = this._eventSourcing.TraceAsync(this.State, events);
+                this.State.Player(events);
                 this._eventSourcing.SaveSnapshotAsync(this.State).Wait(10000);
             }
         }

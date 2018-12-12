@@ -25,8 +25,14 @@ namespace Ray2
         /// <summary>
         /// Play event modification status
         /// </summary>
-        /// <param name="evt"></param>
+        /// <param name="@event"></param>
         void Player(IEvent @event);
+        /// <summary>
+        /// Play event modification status
+        /// </summary>
+        /// <param name="events"></param>
+        void Player(IList<IEvent> events);
+    
         /// <summary>
         /// next version no
         /// </summary>
@@ -42,5 +48,10 @@ namespace Ray2
         /// State Id
         /// </summary>
         TStateKey StateId { get; set; }
+        /// <summary>
+        /// Play event modification status
+        /// </summary>
+        /// <param name="events"></param>
+        void Player(IList<IEvent<TStateKey>> events);
     }
 }

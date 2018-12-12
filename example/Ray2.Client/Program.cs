@@ -28,7 +28,7 @@ namespace Ray2.Client
                         // Console.WriteLine("Press Enter for times...");
                         Console.WriteLine("start");
                         Console.ReadLine();
-                        var length = 1;// int.Parse(Console.ReadLine());
+                        var length = 10000;// int.Parse(Console.ReadLine());
                         var stopWatch = new Stopwatch();
                         stopWatch.Start();
                         await Task.WhenAll(Enumerable.Range(0, length).Select(x =>
