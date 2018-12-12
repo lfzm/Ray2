@@ -19,7 +19,7 @@ namespace Ray2.EventSource
         private readonly IEventSourcing<TState, TStateKey> eventSourcing;
         private readonly ISerializer serializer;
 
-        private Queue<EventTransactionBufferWrap<TStateKey>> transactionEvents = new Queue<EventTransactionBufferWrap<TStateKey>>();
+        private List<EventTransactionBufferWrap<TStateKey>> transactionEvents = new List<EventTransactionBufferWrap<TStateKey>>();
         public TransactionState TransactionState { get; private set; } = TransactionState.NotCommit;
         public EventTransaction(RayGrain<TState, TStateKey> rayGrain, IServiceProvider serviceProvider, IEventSourcing<TState, TStateKey> eventSourcing)
         {
@@ -36,20 +36,13 @@ namespace Ray2.EventSource
             if (this.Count() > 0)
             {
                 //Save all events in this transaction
-                var events = transactionEvents.ToList().Select(f => f.Value).ToList();
+                var events = transactionEvents.Select(f => f.Value).ToList();
                 if (await this.eventSourcing.SaveAsync(events))
                 {
                     //Turn off transaction status in the primary service
                     this.rayGrain.EndTransaction(events);
-
-                    while (transactionEvents.Count>0)
-                    {
-                        var e = transactionEvents.Dequeue();
-                        if (e.IsPublish)
-                        {
-                            await this.rayGrain.PublishEventAsync(e.Value);
-                        }
-                    }
+                    List<Task> publishTasks = transactionEvents.Select(f => this.rayGrain.PublishEventAsync(f.Value)).ToList();
+                    Task.WaitAll(publishTasks.ToArray(), TimeSpan.FromSeconds(30));
                     return true;
                 }
             }
@@ -73,7 +66,7 @@ namespace Ray2.EventSource
             @event.Version = State.NextVersion();
             @event.StateId = State.StateId;
             var wrap = new EventTransactionBufferWrap<TStateKey>(@event, isPublish);
-            transactionEvents.Enqueue(wrap);
+            transactionEvents.Add(wrap);
             this.State.Player(@event);
         }
 
@@ -114,8 +107,6 @@ namespace Ray2.EventSource
         {
             return this.transactionEvents.Count;
         }
-
-
     }
 
     public enum TransactionState
