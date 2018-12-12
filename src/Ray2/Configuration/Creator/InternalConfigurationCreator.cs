@@ -9,30 +9,27 @@ namespace Ray2.Configuration.Creator
 {
     public class InternalConfigurationCreator : IInternalConfigurationCreator
     {
-        private  InternalConfigurationBuilder builder;
-        private readonly IInternalConfigurationValidator _validator;
+        private InternalConfigurationBuilder builder;
         private readonly IEventProcessOptionsCreator _eventProcessOptionsCreator;
         private readonly IEventPublishOptionsCreator _eventPublishOptionsCreator;
         private readonly IEventSourceOptionsCreator _eventSourceOptionsCreator;
-        public InternalConfigurationCreator(IServiceProvider services, IInternalConfigurationValidator validator, IEventProcessOptionsCreator eventProcessOptionsCreator, IEventPublishOptionsCreator eventPublishOptionsCreator, IEventSourceOptionsCreator eventSourceOptionsCreator)
+        private readonly IEventSubscribeOptionsCreator _eventSubscribeOptionsCreator;
+        private InternalConfiguration configuration;
+        public InternalConfigurationCreator()
         {
-            this._validator = validator;
-            this._eventProcessOptionsCreator = eventProcessOptionsCreator;
-            this._eventPublishOptionsCreator = eventPublishOptionsCreator;
-            this._eventSourceOptionsCreator = eventSourceOptionsCreator;
+            this._eventSubscribeOptionsCreator = new EventSubscribeOptionsCreator();
+            this._eventProcessOptionsCreator = new EventProcessOptionsCreator(_eventSubscribeOptionsCreator);
+            this._eventPublishOptionsCreator = new EventPublishOptionsCreator();
+            this._eventSourceOptionsCreator = new EventSourceOptionsCreator();
+            this.builder = new InternalConfigurationBuilder();
         }
         public InternalConfiguration Create()
         {
-            builder = new InternalConfigurationBuilder();
-
             this.LoadConfiguration();
-
-            var configuration = builder.Build();
-
-            _validator.IsValid(configuration);
-
+            configuration = builder.Build();
             return configuration;
         }
+
         public void LoadConfiguration()
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(a => !a.IsDynamic);
@@ -46,8 +43,8 @@ namespace Ray2.Configuration.Creator
         private void LoadEventSourcing(Assembly assembly)
         {
             var estype = typeof(IRay);
-            var allType = assembly.GetExportedTypes().Where(t => estype.IsAssignableFrom(t) 
-                && t.IsAbstract == false 
+            var allType = assembly.GetExportedTypes().Where(t => estype.IsAssignableFrom(t)
+                && t.IsAbstract == false
                 && t.IsClass == true);
             foreach (var type in allType)
             {
@@ -66,11 +63,15 @@ namespace Ray2.Configuration.Creator
         private void LoadEventProcessor(Assembly assembly)
         {
             var eptype = typeof(IEventProcessor);
-            var allType = assembly.GetExportedTypes().Where(t => eptype.IsAssignableFrom(t) 
-                && t.IsAbstract == false 
+            var allType = assembly.GetExportedTypes().Where(t => eptype.IsAssignableFrom(t)
+                && t.IsAbstract == false
                 && t.IsClass == true);
             foreach (var type in allType)
             {
+                if (type == typeof(EventProcessorGrainDispatch))
+                {
+                    continue;
+                }
                 var eventProcessOptions = this._eventProcessOptionsCreator.Create(type);
                 this.builder.WithEventProcessOptions(eventProcessOptions);
             }
@@ -90,7 +91,7 @@ namespace Ray2.Configuration.Creator
                     EventInfo info = new EventInfo();
                     info.Type = type;
                     if (!string.IsNullOrEmpty(msg.TypeCode))
-                        info.Name=msg.TypeCode;
+                        info.Name = msg.TypeCode;
                     else
                         info.Name = type.FullName;
                     this.builder.WithEventInfo(info);
@@ -104,5 +105,7 @@ namespace Ray2.Configuration.Creator
                 }
             }
         }
+
+
     }
 }

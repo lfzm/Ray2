@@ -83,11 +83,11 @@ namespace Ray2.EventSource
         {
             return await this._storageFactory.GetTable(this.Options.EventSourceName, StorageType.EventSource, this.StateId.ToString());
         }
-        public async override Task<IList<IEvent>> GetListAsync(EventQueryModel queryModel)
+        public async new Task<IList<IEvent<TStateKey>>> GetListAsync(EventQueryModel queryModel)
         {
             queryModel.StateId = this.StateId.ToString();
             List<string> tables = await this._storageFactory.GetTableList(this.Options.EventSourceName, StorageType.EventSource, this.StateId.ToString(), queryModel.StartTime);
-            List<IEvent> events = new List<IEvent>();
+            List<IEvent<TStateKey>> events = new List<IEvent<TStateKey>>();
             foreach (var t in tables)
             {
                 var eventModels = await _eventStorage.GetListAsync(t, queryModel);
@@ -107,16 +107,27 @@ namespace Ray2.EventSource
             var state = new TState { StateId = this.StateId };
             if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
             {
-                state = await this._snapshotStorage.ReadAsync<TState>(this.SnapshotTable, this.StateId);
+                var st = await this._snapshotStorage.ReadAsync<TState>(this.SnapshotTable, this.StateId);
+                if (st != null)
+                {
+                    state = st;
+                }
+                else
+                {
+                    if (state.Version == 0)
+                    {
+                        //Initialize data first
+                       await this.SaveSnapshotAsync(state);
+                    }
+                }
             }
             //Get current event
             List<IEvent<TStateKey>> events = (List<IEvent<TStateKey>>)await this.GetListAsync(new EventQueryModel(state.Version));
             if (events == null || events.Count == 0)
                 return state;
-
+           
             state = this.TraceAsync(state, events);
-            //save snapshot
-            await this.SaveSnapshotAsync(state);
+            await this.SaveSnapshotAsync(state); //save snapshot
             return state;
         }
         public async Task ClearSnapshotAsync()
@@ -132,7 +143,7 @@ namespace Ray2.EventSource
                 return;
             try
             {
-                if (state.Version == 1)
+                if (state.Version == 0)
                     await this._snapshotStorage.InsertAsync(this.SnapshotTable, state.StateId, state);
                 else
                     await this._snapshotStorage.UpdateAsync(this.SnapshotTable, state.StateId, state);
@@ -148,6 +159,7 @@ namespace Ray2.EventSource
         {
             if (@event != null)
                 state.Player(@event);
+           
             return state;
         }
         public TState TraceAsync(TState state, IList<IEvent<TStateKey>> events)
@@ -216,11 +228,11 @@ namespace Ray2.EventSource
             }
             return events;
         }
-        public List<IEvent> ConvertEvent<TStateKey>(IList<EventModel> eventModels)
+        public List<IEvent<TStateKey>> ConvertEvent<TStateKey>(IList<EventModel> eventModels)
         {
-            List<IEvent> events = new List<IEvent>();
+            List<IEvent<TStateKey>> events = new List<IEvent<TStateKey>>();
             if (eventModels == null || eventModels.Count == 0)
-                return new List<IEvent>();
+                return events;
 
             foreach (var model in eventModels)
             {

@@ -6,11 +6,6 @@ namespace Ray2.Configuration.Creator
 {
     public class EventSourceOptionsCreator : IEventSourceOptionsCreator
     {
-        private readonly EventSourceOptionsBuilder _builder;
-        public EventSourceOptionsCreator(EventSourceOptionsBuilder builder)
-        {
-            this._builder = builder;
-        }
         public EventSourceOptions Create(Type type)
         {
             var attr = type.GetCustomAttribute<EventSourcingAttribute>();
@@ -21,8 +16,13 @@ namespace Ray2.Configuration.Creator
 
             var snapshotOptions = this.CreateSnapshotOptions(attr);
             var storageOptions = this.CreateStorageOptions(attr);
+            string name = attr.Name;
+            if (string.IsNullOrEmpty(name))
+            {
+                name = type.Name;
+            }
 
-            return new EventSourceOptionsBuilder().WithEventSourcing(attr.Name, type)
+            return new EventSourceOptionsBuilder().WithEventSourcing(name, type)
                    .WithSnapshotOptions(snapshotOptions)
                    .WithStorageOptions(storageOptions)
                    .Build();

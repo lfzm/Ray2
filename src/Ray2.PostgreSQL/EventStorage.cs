@@ -60,7 +60,7 @@ namespace Ray2.PostgreSQL
         {
             return storageList.GetOrAdd(tableName, (key) =>
             {
-                this._tableStorage.CreateEventTable(tableName, stateId).GetAwaiter();
+                this._tableStorage.CreateEventTable(tableName, stateId);
                 return new PostgreSqlEventStorage(this._serviceProvider, _options, this._providerName, key);
             });
         }

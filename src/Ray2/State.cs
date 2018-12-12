@@ -17,22 +17,22 @@ namespace Ray2
         /// <summary>
         /// State Id
         /// </summary>
-        [DataMember(Order = 1)]
+       [DataMember]
         public virtual TStateKey StateId { get; set; }
         /// <summary>
         /// State version number
         /// </summary>
-        [DataMember(Order = 2)]
+        [DataMember]
         public virtual long Version { get; private set; } = 0;
         /// <summary>
         /// Event time corresponding to the status version number
         /// </summary>
-        [DataMember(Order = 3)]
+        [DataMember]
         public virtual long VersionTime { get; private set; }
         /// <summary>
         /// State type fullname
         /// </summary>
-        [DataMember(Order = 4)]
+        [DataMember]
         public virtual string TypeCode { get; }
         /// <summary>
         /// next version no
@@ -50,7 +50,7 @@ namespace Ray2
         {
             this.PlayEvent(@event);
             this.Version = @event.Version;
-            this.VersionTime = DateTime.Now.Ticks;
+            this.VersionTime = @event.Timestamp;
         }
         /// <summary>
         /// Play event

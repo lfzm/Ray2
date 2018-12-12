@@ -62,12 +62,12 @@ namespace Ray2
 
         private void AddInternalConfiguration()
         {
-            var configurationCreator = this.Services.BuildServiceProvider().GetRequiredService<IInternalConfigurationCreator>();
-            var configuration = configurationCreator.Create();
+            var configuration = new InternalConfigurationCreator().Create();
             this.Services.AddSingleton<IInternalConfiguration>(configuration);
+            this.Services.BuildServiceProvider().GetRequiredService<IInternalConfigurationValidator>().IsValid(configuration);
 
             //Inject the Processor into the DI system
-            var processList = configuration.GetEventProcessOptionsList();
+            var processList = configuration.EventProcessOptionsList;
             if (processList == null || processList.Count == 0)
                 return;
             foreach (var p in processList)

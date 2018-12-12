@@ -14,6 +14,21 @@ namespace Ray2.Configuration
         internal Dictionary<string, EventSourceOptions> _eventSourceOptionsBySource = new Dictionary<string, EventSourceOptions>();
         internal Dictionary<string, EventPublishOptions> _eventPublishOptions = new Dictionary<string, EventPublishOptions>();
         internal Dictionary<string, EventInfo> _eventInfos = new Dictionary<string, EventInfo>();
+
+        public IList<EventProcessOptions> EventProcessOptionsList
+        {
+            get { return _eventProcessOptions.Values.ToList(); }
+        }
+        public IList<EventPublishOptions> EventPublishOptionsList
+        {
+            get { return _eventPublishOptions.Values.ToList(); }
+        }
+        public IList<EventSourceOptions> EventSourceOptions
+        {
+            get { return _eventSourceOptions.Values.ToList(); }
+        }
+
+
         public EventInfo GetEvenInfo(string name)
         {
             if (_eventInfos.TryGetValue(name, out EventInfo eventInfo))
@@ -65,12 +80,6 @@ namespace Ray2.Configuration
                 return null;
             }
         }
-
-        public IList<EventProcessOptions> GetEventProcessOptionsList()
-        {
-            return _eventProcessOptions.Values.ToList(); ;
-        }
-
         public EventPublishOptions GetEventPublishOptions(IRay ray)
         {
             if (_eventPublishOptions.TryGetValue(ray.GetType().FullName, out EventPublishOptions options))
@@ -95,11 +104,7 @@ namespace Ray2.Configuration
             }
         }
 
-        public IList<EventPublishOptions> GetEventPublishOptionsList()
-        {
-            return _eventPublishOptions.Values.ToList();
-        }
-
+  
         public EventSourceOptions GetEventSourceOptions(string name)
         {
             if (_eventSourceOptions.TryGetValue(name, out EventSourceOptions options))
@@ -124,11 +129,7 @@ namespace Ray2.Configuration
             }
         }
 
-        public IList<EventSourceOptions> GetEventSourceOptions()
-        {
-            return _eventSourceOptions.Values.ToList();
-        }
+  
 
-       
     }
 }

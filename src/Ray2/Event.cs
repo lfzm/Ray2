@@ -9,7 +9,7 @@ namespace Ray2
     /// Event abstract class
     /// </summary>
     /// <typeparam name="TStateKey">StateId Type</typeparam>
-    [DataContract]
+   [DataContract]
     public abstract class Event<TStateKey> : IEvent<TStateKey>
     {
         public Event()
@@ -28,27 +28,27 @@ namespace Ray2
         /// <summary>
         /// State Id  <see cref="IState{TStateKey}"/>  
         /// </summary>
-        [DataMember(Order = 1)]
+        [DataMember]
         public virtual TStateKey StateId { get; set; }
         /// <summary>
         ///  the version number of <see cref="IState{TStateKey}"/>  
         /// </summary>
-        [DataMember(Order = 2)]
+        [DataMember]
         public virtual long Version { get; set; }
         /// <summary>
         ///  Event release timestamp
         /// </summary>
-        [DataMember(Order = 3)]
+        [DataMember]
         public virtual long Timestamp { get; private set; }
         /// <summary>
         /// Event type fullname
         /// </summary>
-        [DataMember(Order = 4)]
+        [DataMember]
         public virtual string TypeCode { get; private set; }
         /// <summary>
         /// Relation Event
         /// </summary>
-        [DataMember(Order = 5)]
+        [DataMember]
         public virtual string RelationEvent { get;  set; }
         /// <summary>
         ///  Generate Relation key
@@ -72,7 +72,7 @@ namespace Ray2
         }
 
 
-        private long GetCurrentTimeUnix()
+        public long GetCurrentTimeUnix()
         {
             TimeSpan cha = (DateTime.Now - TimeZoneInfo.ConvertTimeToUtc(new System.DateTime(1970, 1, 1)));
             long t = (long)cha.TotalMilliseconds;

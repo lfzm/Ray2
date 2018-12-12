@@ -62,7 +62,7 @@ namespace Ray2.Test.MQ
             opts.Add(processOptions);
             processOptions.SubscribeOptions.Add(new EventSubscribeOptions(providerName, name, name));
             processOptions.SubscribeOptions.Add(new EventSubscribeOptions(providerName + "1", name, name));
-            internalConfiguration.Setup(f => f.GetEventProcessOptionsList()).Returns(opts);
+            internalConfiguration.Setup(f => f.EventProcessOptionsList).Returns(opts);
         }
 
         private void GivenInitEventSubscriber()

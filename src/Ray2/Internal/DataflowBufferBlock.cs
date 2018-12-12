@@ -21,10 +21,13 @@ namespace Ray2.Internal
         {
             return Task.Run(async () =>
             {
-                var result = await dataflowChannel.SendAsync(wrap);
-                if (!result)
+                //First use the synchronous method to quickly write to the BufferBlock, if the failure is using the asynchronous method
+                if (!dataflowChannel.Post(wrap))
                 {
-                    return result;
+                    if(!await dataflowChannel.SendAsync(wrap))
+                    {
+                        return false;
+                    }
                 }
                 if (isProcessing == 0)
                     TriggerProcessor();
@@ -35,7 +38,7 @@ namespace Ray2.Internal
                 }
                 else
                 {
-                    return result;
+                    return true;
                 }
             });
         }

@@ -82,11 +82,11 @@ namespace Ray2.PostgreSQL.Test
         }
         private void When_CreateEventTable(string name,object stateId)
         {
-            this.storage.CreateEventTable(name, stateId).GetAwaiter().GetResult();
+            this.storage.CreateEventTable(name, stateId);
         }
         private void When_CreateStateTable(string name, object stateId)
         {
-            this.storage.CreateStateTable(name, stateId).GetAwaiter().GetResult();
+            this.storage.CreateStateTable(name, stateId);
         }
         private void ThenSuccess()
         {

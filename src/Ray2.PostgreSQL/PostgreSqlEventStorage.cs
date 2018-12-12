@@ -45,7 +45,7 @@ namespace Ray2.PostgreSQL
                 StringBuilder sql = new StringBuilder($"COPY (SELECT typecode,data,datatype,version FROM {tableName} WHERE version > '{query.StartVersion}'");
                 if (query.StateId != null)
                     sql.Append($" and stateid = '{query.StateId}'");
-                if (query.StartVersion > 0)
+                if (query.EndVersion > 0)
                     sql.Append($" and version <= '{query.EndVersion}'");
                 if (!string.IsNullOrEmpty(query.EventTypeCode))
                     sql.Append($" and typecode = '{query.EventTypeCode}'");
@@ -101,7 +101,7 @@ namespace Ray2.PostgreSQL
             if (this._internalConfiguration.GetEvenType(typeCode, out Type type))
             {
                 object data = this.GetSerializer(dataType).Deserialize(type, bytes);
-                if(data is IEvent e)
+                if (data is IEvent e)
                 {
                     EventModel eventModel = new EventModel(e, typeCode, version);
                     return eventModel;
@@ -136,12 +136,13 @@ namespace Ray2.PostgreSQL
                 }
             }
         }
-        public Task<bool> SaveAsync(EventCollectionStorageModel events)
+        public async  Task<bool> SaveAsync(EventCollectionStorageModel events)
         {
             using (var db = PostgreSqlDbContext.Create(this.options))
             {
+                await db.OpenAsync();
                 this.BinarySaveAsync(db, events.Events);
-                return Task.FromResult(true);
+                return true;
             }
         }
         public void BinarySaveAsync(PostgreSqlDbContext db, List<EventStorageModel> events)

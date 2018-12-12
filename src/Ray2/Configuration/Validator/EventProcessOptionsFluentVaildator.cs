@@ -19,19 +19,20 @@ namespace Ray2.Configuration.Validator
                 .WithMessage(x => $"EventProcessorAttribute.Name in {x.ProcessorFullName} cannot be empty");
 
             base.When(x => x.ProcessorType == ProcessorType.GrainProcessor, () =>
-               {
-                   base.RuleFor(x => x.EventSourceName)
-                       .NotEmpty()
-                       .WithMessage(x => $"EventProcessorAttribute.EventSourceName in {x.ProcessorFullName} cannot be empty");
-               });
+            {
+                base.RuleFor(x => x.EventSourceName)
+                    .NotEmpty()
+                    .WithMessage(x => $"EventProcessorAttribute.EventSourceName in {x.ProcessorFullName} cannot be empty");
+            });
 
             base.RuleFor(x => x.OnceProcessCount)
                 .GreaterThan(0)
                 .WithMessage(x => $"The EventProcessorAttribute.OnceProcessCount configuration in {x.ProcessorFullName} must be greater than zero");
 
             base.RuleFor(x => x.StatusOptions)
-                      .Must(x => string.IsNullOrEmpty(x.ShardingStrategy) && string.IsNullOrEmpty(x.StorageProvider))
-                      .WithMessage(x => $" Need to configure EventProcessorAttribute.StorageProvider or EventProcessorAttribute.ShardingStrategy storage provider in {x.ProcessorFullName}");
+                .Must(x => !string.IsNullOrEmpty(x.ShardingStrategy) || !string.IsNullOrEmpty(x.StorageProvider))
+                .WithMessage(x => $" Need to configure EventProcessorAttribute.StorageProvider or EventProcessorAttribute.ShardingStrategy storage provider in {x.ProcessorFullName}");
+
             base.When(x => !string.IsNullOrEmpty(x.StatusOptions.ShardingStrategy), () =>
             {
                 base.RuleFor(x => x.StatusOptions.ShardingStrategy)

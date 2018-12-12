@@ -25,13 +25,13 @@ namespace Ray2.EventProcess
             {
                 eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: _guid, grainClassNamePrefix: _grainClassName);
             }
-            else if (id is string _strId)
+            else if (id is long _id)
             {
-                eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: _strId, grainClassNamePrefix: _grainClassName);
+                eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: _id, grainClassNamePrefix: _grainClassName);
             }
             else
             {
-                eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: (long)id, grainClassNamePrefix: _grainClassName);
+                eventProcessor = client.GetGrain<IEventProcessor>(primaryKey: id.ToString(), grainClassNamePrefix: _grainClassName);
             }
             return eventProcessor.Tell(model);
         }

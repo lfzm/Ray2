@@ -4,6 +4,6 @@ namespace Ray2.Configuration.Validator
 {
     public interface IInternalConfigurationValidator
     {
-        Task IsValid(InternalConfiguration configuration);
+        void IsValid(InternalConfiguration configuration);
     }
 }

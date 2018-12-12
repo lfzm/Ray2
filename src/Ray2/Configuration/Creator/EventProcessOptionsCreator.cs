@@ -1,5 +1,4 @@
-﻿using Ray2.Configuration.Attributes;
-using Ray2.Configuration.Builder;
+﻿using Ray2.Configuration.Builder;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -25,9 +24,13 @@ namespace Ray2.Configuration.Creator
 
             var statusOptions = this.CreateStatusOptions(attribute);
             var eventSubscribeOptionsList = this._eventSubscribeOptionsCreator.Create(type);
-
+            string name = attribute.Name;
+            if (string.IsNullOrEmpty(name))
+            {
+                name = type.Name;
+            }
             return new EventProcessOptionsBuilder()
-                  .WithProcessor(attribute.Name, type)
+                  .WithProcessor(name, type)
                   .WithEventSourceName(attribute.EventSourceName)
                   .WithOnceProcessConfig(attribute.OnceProcessCount, attribute.OnceProcessTimeout)
                   .WithStatusOptions(statusOptions)

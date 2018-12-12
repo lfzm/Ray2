@@ -11,6 +11,22 @@ namespace Ray2.Configuration
     public interface IInternalConfiguration
     {
         /// <summary>
+        /// Get all event source configurations
+        /// </summary>
+        /// <returns></returns>
+        IList<EventSourceOptions> EventSourceOptions { get; }
+        /// <summary>
+        /// Get all event publishing configurations
+        /// </summary>
+        /// <returns></returns>
+        IList<EventPublishOptions> EventPublishOptionsList { get; }
+        /// <summary>
+        /// Get all processor configurations
+        /// </summary>
+        /// <returns></returns>
+        IList<EventProcessOptions> EventProcessOptionsList { get; }
+
+        /// <summary>
         /// Get the event type by name
         /// </summary>
         /// <param name="name">The name of the event</param>
@@ -40,11 +56,7 @@ namespace Ray2.Configuration
         /// <param name="eventProcessor">processor</param>
         /// <returns></returns>
         EventProcessOptions GetEventProcessOptions(IEventProcessor eventProcessor);
-        /// <summary>
-        /// Get all processor configurations
-        /// </summary>
-        /// <returns></returns>
-        IList<EventProcessOptions> GetEventProcessOptionsList();
+
         /// <summary>
         /// Get the event source configuration based on the event source name
         /// </summary>
@@ -57,11 +69,7 @@ namespace Ray2.Configuration
         /// <param name="ray">Event source</param>
         /// <returns></returns>
         EventSourceOptions GetEventSourceOptions(IRay ray);
-        /// <summary>
-        /// Get all event source configurations
-        /// </summary>
-        /// <returns></returns>
-        IList<EventSourceOptions> GetEventSourceOptions();
+    
         /// <summary>
         /// Get the event publishing configuration in the event source
         /// </summary>
@@ -74,10 +82,6 @@ namespace Ray2.Configuration
         /// <param name="@event">event</param>
         /// <returns></returns>
         EventPublishOptions GetEventPublishOptions(IEvent @event);
-        /// <summary>
-        /// Get all event publishing configurations
-        /// </summary>
-        /// <returns></returns>
-        IList<EventPublishOptions> GetEventPublishOptionsList();
+    
     }
 }

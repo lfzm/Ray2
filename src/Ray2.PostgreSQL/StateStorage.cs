@@ -50,7 +50,7 @@ namespace Ray2.PostgreSQL
         {
             return storageList.GetOrAdd(tableName, (key) =>
             {
-                this._tableStorage.CreateStateTable(tableName, stateId).GetAwaiter();
+                this._tableStorage.CreateStateTable(tableName, stateId);
                 return new PostgreSqlStateStorage(this._serviceProvider, _options, this._providerName, key);
             });
         }

@@ -3,11 +3,14 @@ using Microsoft.Extensions.Logging;
 using Orleans;
 using Ray2.Configuration;
 using Ray2.EventSource;
+using Ray2.Internal;
 using Ray2.MQ;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace Ray2
 {
@@ -19,8 +22,8 @@ namespace Ray2
     {
         public TState State { get; private set; }
         protected abstract TStateKey StateId { get; }
-
         protected ILogger Logger { get; set; }
+        private IDataflowBufferBlock<EventTransactionBufferWrap<TStateKey>> _eventBufferBlock;
         private IEventSourcing<TState, TStateKey> _eventSourcing;
         private IInternalConfiguration _internalConfiguration;
         private IMQPublisher _mqPublisher;
@@ -39,6 +42,7 @@ namespace Ray2
         {
             try
             {
+                this._eventBufferBlock = new DataflowBufferBlock<EventTransactionBufferWrap<TStateKey>>(this.TriggerEventStorage);
                 this._internalConfiguration = this.ServiceProvider.GetRequiredService<IInternalConfiguration>();
                 this._mqPublisher = this.ServiceProvider.GetRequiredService<IMQPublisher>();
                 this._eventSourcing = await this.ServiceProvider.GetEventSourcing<TState, TStateKey>(this).Init(this.StateId);
@@ -62,12 +66,13 @@ namespace Ray2
         /// Write event
         /// </summary>
         /// <param name="event"><see cref="IEvent{TStateKey}"/></param>
+        /// <param name="isPublish">is to publish to MQ</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected async virtual Task<bool> WriteEventAsync(IEvent<TStateKey> @event, bool isPublish = true)
+        protected async virtual Task<bool> WriteAsync(IEvent<TStateKey> @event, bool isPublish = true)
         {
             if (@event == null)
-                throw new ArgumentNullException("WriteEventAsync event cannot be empty");
+                throw new ArgumentNullException("WriteAsync event cannot be empty");
 
             this.IsBlockProcess();
             if (this.IsBeginTransaction)
@@ -92,11 +97,53 @@ namespace Ray2
                 if (isPublish)
                     await this.PublishEventAsync(@event);
                 //Save snapshot
-                await this._eventSourcing.SaveSnapshotAsync(this.State);
+                if (this._eventSourcing.Options.SnapshotOptions.SnapshotType == SnapshotType.Synchronous)
+                {
+                    await this._eventSourcing.SaveSnapshotAsync(this.State);
+                }
                 return true;
             }
             else
                 return false;
+        }
+
+        /// <summary>
+        /// concurrent  write event
+        /// </summary>
+        /// <param name="event"><see cref="IEvent{TStateKey}"/></param>
+        /// <param name="isPublish">is to publish to MQ</param>
+        /// <returns></returns>
+        protected virtual Task<bool> ConcurrentWriteAsync(IEvent<TStateKey> @event, bool isPublish = true)
+        {
+            if (@event == null)
+                throw new ArgumentNullException("ConcurrentWriteAsync event cannot be empty");
+            this.IsBlockProcess();
+            var wrap = new EventTransactionBufferWrap<TStateKey>(@event, isPublish);
+            return this._eventBufferBlock.SendAsync(wrap);
+        }
+        private Task TriggerEventStorage(BufferBlock<EventTransactionBufferWrap<TStateKey>> eventBuffer)
+        {
+            var transaction = this.BeginTransaction();
+            List<EventTransactionBufferWrap<TStateKey>> events = new List<EventTransactionBufferWrap<TStateKey>>();
+            while (eventBuffer.TryReceive(out var model))
+            {
+                events.Add(model);
+                transaction.WriteEventAsync(model.Value, model.IsPublish);
+                if (transaction.Count() >= 1000)
+                    break;
+            }
+            try
+            {
+                transaction.Commit();
+                events.ForEach(evt => evt.TaskSource.SetResult(true));
+            }
+            catch (Exception ex)
+            {
+                this.Logger.LogError(ex, "Concurrent write event exception");
+                transaction.Rollback();
+                events.ForEach(evt => evt.TaskSource.SetException(ex));
+            }
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -136,7 +183,7 @@ namespace Ray2
             if (this.IsBeginTransaction)
                 throw new Exception("Unable to open event again during transaction");
             this.IsBeginTransaction = true;
-            return new EventTransaction<TState, TStateKey>(this, this._eventSourcing);
+            return new EventTransaction<TState, TStateKey>(this, this.ServiceProvider, this._eventSourcing);
         }
         /// <summary>
         /// end transaction
@@ -148,14 +195,15 @@ namespace Ray2
             if (events != null && events.Count > 0)
             {
                 this.State = this._eventSourcing.TraceAsync(this.State, events);
-                this._eventSourcing.SaveSnapshotAsync(this.State).Wait();
+                this._eventSourcing.SaveSnapshotAsync(this.State).Wait(10000);
             }
         }
         private void IsBlockProcess()
         {
             if (this.IsBlock)
+            {
                 throw new Exception($"Event version and state version don't match!,StateId={State.StateId},Event Version={State.NextVersion()},State Version={State.Version}");
+            }
         }
-
     }
 }

@@ -42,7 +42,7 @@ namespace Ray2.MQ
 
         public async Task Do(Func<EventSubscribeOptions, string, Task> func)
         {
-            var options = this._configuration.GetEventProcessOptionsList();
+            var options = this._configuration.EventProcessOptionsList;
             if (options == null || options.Count == 0)
                 return;
             foreach (var o in options)

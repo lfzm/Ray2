@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Orleans.Runtime;
 using Ray2;
 using Ray2.MQ;
@@ -6,7 +7,7 @@ using Ray2.RabbitMQ;
 using Ray2.RabbitMQ.Configuration;
 using System;
 
-namespace Microsoft.Extensions.DependencyInjection
+namespace Orleans.Hosting
 {
     public static class RabbitRayBuilderExpansions
     {

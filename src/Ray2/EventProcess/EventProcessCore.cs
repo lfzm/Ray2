@@ -52,9 +52,9 @@ namespace Ray2.EventProcess
                 List<IEvent> events = new List<IEvent>();
                 while (eventBuffer.TryReceive(out var model))
                 {
+                    events.Add(model.Event);
                     if (events.Count > this.Options.OnceProcessCount)
                         break;
-                    events.Add(model.Event);
                 }
                 //Exclude duplicate events
                 using (var tokenSource = new CancellationTokenSource())
@@ -80,28 +80,27 @@ namespace Ray2.EventProcess
                 this._logger.LogError(ex, "event process failed");
             }
         }
-
-
     }
 
     public class EventProcessCore<TState, TStateKey> : EventProcessCore, IEventProcessCore<TState, TStateKey>
            where TState : IState<TStateKey>, new()
     {
-        private readonly IEventSourcing _eventSourcing;
+        private IEventSourcing _eventSourcing;
         private TState State;
         private TStateKey StateId;
         private IStateStorage _stateStorage;
         private string StorageTable;
+        private int exeEventCount;
         public EventProcessCore(IServiceProvider serviceProvider, ILogger<EventProcessCore<TState, TStateKey>> logger)
             : base(serviceProvider, logger)
         {
-            this._eventSourcing = serviceProvider.GetEventSourcing(this.Options.EventSourceName);
         }
 
         public async Task<IEventProcessCore<TState, TStateKey>> Init(TStateKey stateId, EventProcessor eventProcessor)
         {
             this.StateId = stateId;
             this._eventProcessor = eventProcessor;
+            this._eventSourcing = this._serviceProvider.GetEventSourcing(this.Options.EventSourceName);
             var storageFactory = new StorageFactory(this._serviceProvider, this.Options.StatusOptions);
             this._stateStorage = await storageFactory.GetStateStorage(this.Options.ProcessorName, StorageType.EventProcessState, this.StateId.ToString());
             this.StorageTable = await storageFactory.GetTable(this.Options.ProcessorName, StorageType.EventProcessState, this.StateId.ToString());
@@ -157,7 +156,7 @@ namespace Ray2.EventProcess
                 //Get missing events
                 var events = await this._eventSourcing.GetListAsync(new EventQueryModel(State.Version, @event.Version, @event.Timestamp));
                 if (events == null ||
-                    @event.Version - State.NextVersion() != events.OrderBy(w => w.Version).Count() ||
+                    @event.Version - State.Version != events.OrderBy(w => w.Version).Count() ||
                     events.First().Version != State.NextVersion())
                 {
                     throw new Exception($"Event version of the error,Type={GetType().FullName},StateId={this.StateId.ToString()},StateVersion={State.Version},EventVersion={@event.Version}");
@@ -172,8 +171,16 @@ namespace Ray2.EventProcess
             {
                 await this._eventProcessor(@event);
                 this.State.Player(@event);
+
                 if (this.Options.StatusOptions.StatusMode == StatusMode.Synchronous)
                     await this.SaveStateAsync();
+                else if (this.Options.StatusOptions.StatusMode == StatusMode.Asynchronous)
+                {
+                    if (this.exeEventCount > 200)
+                        await this.SaveStateAsync();
+                    else
+                        this.exeEventCount++;
+                }
             }
         }
         private async Task TriggerEventProcess(List<IEvent> events)
@@ -182,32 +189,54 @@ namespace Ray2.EventProcess
             if (this.State.Version + events.Count != lastEvent.Version)
             {
                 events = await this._eventSourcing.GetListAsync(new EventQueryModel(State.Version, lastEvent.Version, lastEvent.Timestamp)) as List<IEvent>;
-                if (events == null || events.Count == lastEvent.Version - this.State.Version)
+                events = events.OrderBy(f => f.Version).ToList();
+                if (events == null || events.Count != lastEvent.Version - this.State.Version)
                     throw new Exception("Event lost");
             }
-            using (var tokenSource = new CancellationTokenSource())
+            //Group execution. Avoid processing timeouts
+            List<List<IEvent>> eventsGroup = new List<List<IEvent>>();
+            for (int i = 0; i < (events.Count / (this.Options.OnceProcessCount) + 1); i++)
             {
-                var tasks = events.Select(@event => this._eventProcessor(@event));
-                var taskAllEvent = Task.WhenAll(tasks);
-                using (var taskTimeOut = Task.Delay(this.Options.OnceProcessTimeout, tokenSource.Token))
+                var list = events.Skip(i * this.Options.OnceProcessCount).Take(this.Options.OnceProcessCount).ToList();
+                eventsGroup.Add(list);
+            }
+            await this.TriggerEventProcessGroup(eventsGroup);
+
+        }
+        private async Task TriggerEventProcessGroup(List<List<IEvent>> eventsGroup)
+        {
+            if(eventsGroup==null || eventsGroup.Count==0)
+            {
+                return;
+            }
+            foreach (var events in eventsGroup)
+            {
+               var lastEvent = events.LastOrDefault();
+                using (var tokenSource = new CancellationTokenSource())
                 {
-                    await Task.WhenAny(taskAllEvent, taskTimeOut);
-                    if (taskAllEvent.Status == TaskStatus.RanToCompletion)
+                    var tasks = events.Select(@event => this._eventProcessor(@event));
+                    var taskAllEvent = Task.WhenAll(tasks);
+                    using (var taskTimeOut = Task.Delay(this.Options.OnceProcessTimeout, tokenSource.Token))
                     {
-                        tokenSource.Cancel();
-                        this.State.Player(lastEvent);
-                        await this.SaveStateAsync();
-                    }
-                    else
-                    {
-                        throw new Exception("Event processing timeout");
+                        await Task.WhenAny(taskAllEvent, taskTimeOut);
+                        if (taskAllEvent.Status == TaskStatus.RanToCompletion)
+                        {
+                            tokenSource.Cancel();
+                            this.State.Player(lastEvent);
+                            await this.SaveStateAsync();
+                        }
+                        else
+                        {
+                            throw new Exception($"{this.Options.ProcessorName} processing event timeout");
+                        }
                     }
                 }
             }
         }
+
         public async Task SaveStateAsync()
         {
-            if (this.State.Version == 1)
+            if (this.State.Version == 0)
                 await this._stateStorage.InsertAsync(this.StorageTable, this.StateId, State);
             else
                 await this._stateStorage.UpdateAsync(this.StorageTable, this.StateId, State);
@@ -216,16 +245,16 @@ namespace Ray2.EventProcess
         {
             if (this.State != null)
                 return this.State;
-            var state = await this._stateStorage.ReadAsync<TState>(this.StorageTable, this.StateId);
-            if (state == null)
+            this.State = await this._stateStorage.ReadAsync<TState>(this.StorageTable, this.StateId);
+            if (this.State == null)
             {
-                return new TState()
+                this.State = new TState()
                 {
                     StateId = this.StateId
                 };
+                await this.SaveStateAsync();
             }
-            else
-                return State;
+            return this.State;
         }
         public Task ClearStateAsync()
         {

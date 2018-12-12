@@ -22,24 +22,24 @@ namespace Ray2.PostgreSQL
             this._options = serviceProvider.GetRequiredService<IOptionsSnapshot<PostgreSqlOptions>>().Get(name);
         }
 
-        public Task CreateEventTable(string name, object stateId)
+        public void CreateEventTable(string name, object stateId)
         {
             tableCache.GetOrAdd(name, (n) =>
             {
-                this.CreateTable(n, stateId, CreateEventTableSql).GetAwaiter().GetResult();
+                Task task = this.CreateTable(n, stateId, CreateEventTableSql);
+                task.Wait(5000);
                 return n;
             });
-            return Task.CompletedTask;
         }
 
-        public Task CreateStateTable(string name, object stateId)
+        public void CreateStateTable(string name, object stateId)
         {
             tableCache.GetOrAdd(name, (n) =>
-            {
-                this.CreateTable(n, stateId, CreateStateTableSql).GetAwaiter().GetResult();
-                return n;
-            });
-            return Task.CompletedTask;
+           {
+               Task task = this.CreateTable(n, stateId, CreateStateTableSql);
+               task.Wait(5000);
+               return n;
+           });
         }
 
         private async Task CreateTable(string name, object stateId, string sql)
@@ -50,6 +50,7 @@ namespace Ray2.PostgreSQL
                 sql = string.Format(sql, name, stateIdLength);
                 using (var db = PostgreSqlDbContext.Create(this._options))
                 {
+                    await db.OpenAsync();
                     await db.ExecuteAsync(sql);
                 }
             }

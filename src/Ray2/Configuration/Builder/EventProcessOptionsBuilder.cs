@@ -20,7 +20,7 @@ namespace Ray2.Configuration.Builder
             this._processorHandle = type;
             this._processorName = name;
             this._processorFullName = type.FullName;
-            if (type.BaseType == typeof(Grain))
+            if (typeof(Grain).IsAssignableFrom(type))
             {
                 _processorType = ProcessorType.GrainProcessor;
             }

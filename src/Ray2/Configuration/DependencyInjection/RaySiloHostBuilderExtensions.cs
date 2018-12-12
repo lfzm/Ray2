@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Orleans.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Orleans.Runtime;
 using Ray2;
 using Ray2.Configuration.Validator;
 using Ray2.MQ;
 using System;
-using System.Threading.Tasks;
 
-namespace Microsoft.Extensions.DependencyInjection
+namespace Orleans.Hosting
 {
     public static class RaySiloHostBuilderExtensions
     {
@@ -21,6 +21,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             hostBuilder.ConfigureServices((HostBuilderContext build, IServiceCollection services) =>
             {
+
                 services.AddRay(build.Configuration, builder);
             });
             hostBuilder.EnableDirectClient();
@@ -40,9 +41,13 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns></returns>
         internal static IServiceCollection AddRay(this IServiceCollection services, IConfiguration configuration, Action<IRayBuilder> builder)
         {
+            services.AddSingleton(typeof(IKeyedServiceCollection<,>), typeof(KeyedServiceCollection<,>));
+            services.AddLogging();
             var build = new RayBuilder(services, configuration);
             if (builder == null)
+            {
                 throw new RayConfigurationException("Did not inject MQ providers and Storage providers into Ray");
+            }
             builder.Invoke(build);
          
             //Ray builder 
