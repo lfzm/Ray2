@@ -205,7 +205,11 @@ namespace Ray2.EventProcess
             var lastEvent = events.Last();
             if (this.State.Version + events.Count != lastEvent.Version)
             {
-                events = await this._eventSourcing.GetListAsync(new EventQueryModel(State.Version, lastEvent.Version, lastEvent.Timestamp)) as List<IEvent>;
+                var queryModel = new EventQueryModel(State.Version, lastEvent.Version, lastEvent.Timestamp)
+                {
+                    StateId = this.StateId
+                };
+                events = await this._eventSourcing.GetListAsync(queryModel) as List<IEvent>;
                 events = events.OrderBy(f => f.Version).ToList();
                 if (events == null || events.Count != lastEvent.Version - this.State.Version)
                     throw new Exception("Event lost");

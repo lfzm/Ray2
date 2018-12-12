@@ -27,18 +27,18 @@ namespace Ray2.Client
                         // var actor = client.GetGrain<IAccount>(0);
                         // Console.WriteLine("Press Enter for times...");
                         Console.WriteLine("start");
-                      int key=  Convert.ToInt32( Console.ReadLine());
+                        Console.ReadLine();
                         var length = 10000;// int.Parse(Console.ReadLine());
                         var stopWatch = new Stopwatch();
                         stopWatch.Start();
                         await Task.WhenAll(Enumerable.Range(0, length).Select(x =>
                         {
-                            return client.GetGrain<IAccount>(key).AddAmount(1000);
+                            return client.GetGrain<IAccount>(1).AddAmount(1000);
                         }));
                         stopWatch.Stop();
                         Console.WriteLine($"{length  }次操作完成，耗时:{stopWatch.ElapsedMilliseconds}ms");
                         await Task.Delay(200);
-                        Console.WriteLine($"余额为{await client.GetGrain<IAccount>(key).GetBalance()}");
+                        Console.WriteLine($"余额为{await client.GetGrain<IAccount>(1).GetBalance()}");
                     }
                 }
             }
