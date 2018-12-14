@@ -28,13 +28,7 @@ namespace Ray2.RabbitMQ.Test
                 .Then(f => f.ThenPublish_Success())
                 .BDDfy();
         }
-        [Fact]
-        public void should_PublishList_Normal()
-        {
-            this.When(f => f.WhenPublishList())
-              .Then(f => f.ThenPublish_Success())
-              .BDDfy();
-        }
+     
 
         [Fact]
         public void should_GetProducer_300()
@@ -57,16 +51,7 @@ namespace Ray2.RabbitMQ.Test
             this.IsPublish = this.publisher.Publish(this.topic, model).GetAwaiter().GetResult();
         }
 
-        private void WhenPublishList()
-        {
-            List<EventModel> models = new List<EventModel>();
-            for (int i = 0; i < 10; i++)
-            {
-                EventModel model = new EventModel(TestEvent.Create(i));
-                models.Add(model);
-            }
-            this.IsPublish = this.publisher.Publish(this.topic, models).GetAwaiter().GetResult();
-        }
+    
 
         private void WhenGetProducerList(int count)
         {

@@ -38,15 +38,7 @@ namespace Ray2.RabbitMQ
             IRabbitProducer producer = this.GetProducer();
             return this.Publish(topic, model, producer);
         }
-        public async Task<bool> Publish(string topic, IList<EventModel> models)
-        {
-            IRabbitProducer producer = this.GetProducer();
-            foreach (var model in models)
-            {
-                await this.Publish(topic, model, producer);
-            }
-            return true;
-        }
+ 
         public async Task<bool> Publish(string topic, EventModel model, IRabbitProducer producer)
         {
             var message = new PublishMessage(model, this._serializer);
