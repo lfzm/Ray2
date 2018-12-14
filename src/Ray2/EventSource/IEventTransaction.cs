@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Ray2.MQ;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Ray2.EventSource
@@ -8,7 +9,7 @@ namespace Ray2.EventSource
     /// </summary>
     /// <typeparam name="TState"><see cref="IState{TStateKey}"/></typeparam>
     /// <typeparam name="TStateKey"></typeparam>
-    public interface IEventTransaction<TState, TStateKey>: IEventTransaction
+    public interface IEventTransaction<TState, TStateKey> : IEventTransaction
     {
         /// <summary>
         /// Transaction copy status
@@ -18,15 +19,15 @@ namespace Ray2.EventSource
         /// Write events to a transaction
         /// </summary>
         /// <param name="event">event</param>
-        /// <param name="isPublish">Whether to publish to mq</param>
-        void WriteEventAsync(IEvent<TStateKey> @event, bool isPublish = true);
+        /// <param name="publishType">Whether to publish to mq</param>
+        void WriteEventAsync(IEvent<TStateKey> @event, MQPublishType publishType = MQPublishType.Asynchronous);
 
         /// <summary>
         /// Write events to a transaction
         /// </summary>
         /// <param name="events">event list</param>
-        /// <param name="isPublish">Whether to publish to mq</param>
-        void WriteEventAsync(IList<IEvent<TStateKey>> events, bool isPublish = true);
+        /// <param name="publishType">Whether to publish to mq</param>
+        void WriteEventAsync(IList<IEvent<TStateKey>> events, MQPublishType publishType = MQPublishType.Asynchronous);
     }
     /// <summary>
     ///  Transaction batch event

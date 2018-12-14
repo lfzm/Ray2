@@ -1,4 +1,5 @@
 ﻿using Orleans.Runtime;
+using Ray2.MQ;
 using Ray2.Serialization;
 using System;
 using System.Collections.Generic;
@@ -18,7 +19,6 @@ namespace Ray2.EventSource
         private readonly RayGrain<TState, TStateKey> rayGrain;
         private readonly IEventSourcing<TState, TStateKey> eventSourcing;
         private readonly ISerializer serializer;
-
         private List<EventTransactionBufferWrap<TStateKey>> transactionEvents = new List<EventTransactionBufferWrap<TStateKey>>();
         public TransactionState TransactionState { get; private set; } = TransactionState.NotCommit;
         public EventTransaction(RayGrain<TState, TStateKey> rayGrain, IServiceProvider serviceProvider, IEventSourcing<TState, TStateKey> eventSourcing)
@@ -41,7 +41,7 @@ namespace Ray2.EventSource
                 {
                     //Turn off transaction status in the primary service
                     this.rayGrain.EndTransaction(events);
-                    List<Task> publishTasks = transactionEvents.Select(f => this.rayGrain.PublishEventAsync(f.Value)).ToList();
+                    List<Task> publishTasks = transactionEvents.Select(f => this.rayGrain.PublishEventAsync(f.Value,f.Type)).ToList();
                     Task.WaitAll(publishTasks.ToArray(), TimeSpan.FromSeconds(30));
                     return true;
                 }
@@ -57,7 +57,7 @@ namespace Ray2.EventSource
             transactionEvents.Clear();
             this.rayGrain.EndTransaction();
         }
-        public void WriteEventAsync(IEvent<TStateKey> @event, bool isPublish)
+        public void WriteEventAsync(IEvent<TStateKey> @event, MQPublishType publishType = MQPublishType.Asynchronous)
         {
             if (@event == null)
             {
@@ -65,12 +65,12 @@ namespace Ray2.EventSource
             }
             @event.Version = State.NextVersion();
             @event.StateId = State.StateId;
-            var wrap = new EventTransactionBufferWrap<TStateKey>(@event, isPublish);
+            var wrap = new EventTransactionBufferWrap<TStateKey>(@event, publishType);
             transactionEvents.Add(wrap);
             this.State.Player(@event);
         }
 
-        public void WriteEventAsync(IList<IEvent<TStateKey>> events, bool isPublish = true)
+        public void WriteEventAsync(IList<IEvent<TStateKey>> events, MQPublishType publishType = MQPublishType.Asynchronous)
         {
             if (events == null || events.Count == 0)
             {
@@ -78,7 +78,7 @@ namespace Ray2.EventSource
             }
             foreach (var e in events)
             {
-                this.WriteEventAsync(e, isPublish);
+                this.WriteEventAsync(e, publishType);
             }
         }
 

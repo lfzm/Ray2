@@ -17,20 +17,22 @@ namespace Ray2.Internal
         {
             this.processor = processor;
         }
-        public Task<bool> SendAsync(T wrap)
+        public Task<bool> SendAsync(T wrap, bool isWallHandle)
         {
             return Task.Run(async () =>
             {
                 //First use the synchronous method to quickly write to the BufferBlock, if the failure is using the asynchronous method
                 if (!dataflowChannel.Post(wrap))
                 {
-                    if(!await dataflowChannel.SendAsync(wrap))
+                    if (!await dataflowChannel.SendAsync(wrap))
                     {
                         return false;
                     }
                 }
                 if (isProcessing == 0)
                     TriggerProcessor();
+                if (!isWallHandle)
+                    return true;
                 //Determine if you need to wait for processing
                 if (wrap is IDataflowBufferWrap wr)
                 {
@@ -41,6 +43,10 @@ namespace Ray2.Internal
                     return true;
                 }
             });
+        }
+        public Task<bool> SendAsync(T wrap)
+        {
+            return this.SendAsync(wrap, true);
         }
 
         public async void TriggerProcessor()
@@ -63,7 +69,6 @@ namespace Ray2.Internal
             });
 
         }
-
 
 
     }

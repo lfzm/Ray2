@@ -12,36 +12,17 @@ namespace Ray2.MQ
         /// <summary>
         /// Publish a message to the message queue
         /// </summary>
-        /// <param name="topic">topic</param>
-        /// <param name="model">Event object</param>
+        /// <param name="warp">Send event to MQ package</param>
         /// <returns></returns>
-        Task<bool> Publish(IEvent @event);
-
+        Task<bool> PublishAsync(EventPublishBufferWrap warp);
         /// <summary>
-        /// Publish a message to the message queue
+        ///  Publish a message to the message queue
         /// </summary>
-        /// <param name="topic">topic</param>
-        /// <param name="model">Event object collection</param>
-        /// <returns></returns>
-        Task Publish(IList<IEvent> events);
-
-        /// <summary>
-        /// Publish a message to the message queue
-        /// </summary>
-        /// <param name="topic">topic</param>
-        /// <param name="model">Event object</param>
+        /// <param name="evt">Event object</param>
         /// <param name="topic">This is the message queue topic</param>
         /// <param name="mqProviderName">This is a message queue provider</param>
+        /// <param name="publishType"> MQ publish type</param>
         /// <returns></returns>
-        Task<bool> Publish(IEvent @event,string topic, string mqProviderName);
-        /// <summary>
-        /// Publish a message to the message queue
-        /// </summary>
-        /// <param name="topic">topic</param>
-        /// <param name="model">Event object collection</param>
-        /// <param name="topic">This is the message queue topic</param>
-        /// <param name="mqProviderName">This is a message queue provider</param>
-        /// <returns></returns>
-        Task Publish(IList<IEvent> events, string topic, string mqProviderName);
+        Task<bool> PublishAsync(IEvent evt, string topic, string mqProviderName, MQPublishType publishType = MQPublishType.Asynchronous);
     }
 }

@@ -66,10 +66,10 @@ namespace Ray2
         /// Write event
         /// </summary>
         /// <param name="event"><see cref="IEvent{TStateKey}"/></param>
-        /// <param name="isPublish">is to publish to MQ</param>
+        /// <param name="publishType">is to publish to MQ</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected async virtual Task<bool> WriteAsync(IEvent<TStateKey> @event, bool isPublish = true)
+        protected async virtual Task<bool> WriteAsync(IEvent<TStateKey> @event, MQPublishType publishType = MQPublishType.Asynchronous)
         {
             if (@event == null)
                 throw new ArgumentNullException("WriteAsync event cannot be empty");
@@ -94,8 +94,8 @@ namespace Ray2
                     throw ex;
                 }
                 //Publish event
-                if (isPublish)
-                    await this.PublishEventAsync(@event);
+                await this.PublishEventAsync(@event, publishType);
+
                 //Save snapshot
                 if (this._eventSourcing.Options.SnapshotOptions.SnapshotType == SnapshotType.Synchronous)
                 {
@@ -111,14 +111,14 @@ namespace Ray2
         /// concurrent  write event
         /// </summary>
         /// <param name="event"><see cref="IEvent{TStateKey}"/></param>
-        /// <param name="isPublish">is to publish to MQ</param>
+        /// <param name="publishType">is to publish to MQ</param>
         /// <returns></returns>
-        protected virtual Task<bool> ConcurrentWriteAsync(IEvent<TStateKey> @event, bool isPublish = true)
+        protected virtual Task<bool> ConcurrentWriteAsync(IEvent<TStateKey> @event, MQPublishType publishType = MQPublishType.Asynchronous)
         {
             if (@event == null)
                 throw new ArgumentNullException("ConcurrentWriteAsync event cannot be empty");
             this.IsBlockProcess();
-            var wrap = new EventTransactionBufferWrap<TStateKey>(@event, isPublish);
+            var wrap = new EventTransactionBufferWrap<TStateKey>(@event, publishType);
             return this._eventBufferBlock.SendAsync(wrap);
         }
         private Task TriggerEventStorage(BufferBlock<EventTransactionBufferWrap<TStateKey>> eventBuffer)
@@ -128,7 +128,7 @@ namespace Ray2
             while (eventBuffer.TryReceive(out var model))
             {
                 events.Add(model);
-                transaction.WriteEventAsync(model.Value, model.IsPublish);
+                transaction.WriteEventAsync(model.Value, model.Type);
                 if (transaction.Count() >= 1000)
                     break;
             }
@@ -151,20 +151,22 @@ namespace Ray2
         /// </summary>
         /// <param name="event"><see cref="IEvent"/></param>
         /// <returns></returns>
-        internal async Task PublishEventAsync(IEvent @event)
+        internal async Task PublishEventAsync(IEvent @event, MQPublishType publishType = MQPublishType.Asynchronous)
         {
+            if (publishType == MQPublishType.NotPublish)
+                return;
             try
             {
                 if (@event == null)
                     throw new ArgumentNullException("PublishEventAsync event cannot be empty");
                 if (this.PublishOptions != null)
                 {
-                    await _mqPublisher.Publish(@event, this.PublishOptions.Topic, this.PublishOptions.MQProvider);
+                    await _mqPublisher.PublishAsync(@event, this.PublishOptions.Topic, this.PublishOptions.MQProvider, publishType);
                 }
                 var opt = this._internalConfiguration.GetEventPublishOptions(@event);
                 if (opt != null)
                 {
-                    await _mqPublisher.Publish(@event, this.PublishOptions.Topic, this.PublishOptions.MQProvider);
+                    await _mqPublisher.PublishAsync(@event, this.PublishOptions.Topic, this.PublishOptions.MQProvider, publishType);
                 }
             }
             catch (Exception ex)

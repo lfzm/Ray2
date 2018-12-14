@@ -1,16 +1,16 @@
-﻿using Ray2.MQ;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Orleans.Runtime;
-using Ray2.Test.Model;
-using Microsoft.Extensions.Logging;
-using Xunit;
 using Ray2.EventSource;
+using Ray2.Internal;
+using Ray2.MQ;
+using Ray2.Test.Model;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TestStack.BDDfy;
+using Xunit;
 
 namespace Ray2.Test.MQ
 {
@@ -31,7 +31,7 @@ namespace Ray2.Test.MQ
             services.AddSingleton(typeof(IKeyedServiceCollection<,>), typeof(KeyedServiceCollection<,>));
             services.AddSingletonNamedService(providerName, (s, key) => eventPublisher.Object);
             IServiceProvider sp = services.BuildServiceProvider();
-            this.publisher = new MQPublisher(sp, sp.GetRequiredService<ILogger<MQPublisher>>());
+            this.publisher = new MQPublisher(sp, sp.GetRequiredService<IDataflowBufferBlockFactory>(), sp.GetRequiredService<ILogger<MQPublisher>>());
         }
         [Fact]
         public void should_Publish_NotAttribute()
@@ -57,13 +57,13 @@ namespace Ray2.Test.MQ
         public void should_GetAttributeOptions()
         {
             var e = TestEvent.Create(1);
-            var options = this.publisher.GetAttributeOptions(e.GetType());
+            var options = MQPublisherExtensions.GetAttributeOptions(e.GetType());
             Assert.NotNull(options);
             Assert.Equal(options.MQProvider, this.providerName);
             Assert.Equal(topic, options.Topic);
 
             var e1 = TestEvent1.Create(1);
-            options = this.publisher.GetAttributeOptions(e1.GetType());
+            options = MQPublisherExtensions.GetAttributeOptions(e1.GetType());
             Assert.Null(options);
         }
 
@@ -75,14 +75,14 @@ namespace Ray2.Test.MQ
 
         private void WhenPublish(IEvent @event, string topic, string mqProviderName)
         {
-            Result = this.publisher.Publish(@event, topic, mqProviderName).GetAwaiter().GetResult();
+            Result = this.publisher.PublishAsync(@event, topic, mqProviderName).GetAwaiter().GetResult();
         }
 
         private void WhenPublish(IEvent @event)
         {
             try
             {
-                Result = this.publisher.Publish(@event).GetAwaiter().GetResult();
+                Result = this.publisher.PublishAsync(@event).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
@@ -91,12 +91,12 @@ namespace Ray2.Test.MQ
         }
         private void WhenPublish(IList<IEvent> events)
         {
-            this.publisher.Publish(events).GetAwaiter().GetResult();
+            this.publisher.PublishAsync(events).GetAwaiter().GetResult();
         }
 
         private void WhenPublish(IList<IEvent> events, string topic, string mqProviderName)
         {
-            this.publisher.Publish(events, topic, mqProviderName).GetAwaiter().GetResult();
+            this.publisher.PublishAsync(events, topic, mqProviderName).GetAwaiter().GetResult();
         }
 
         private void ThenFailes()

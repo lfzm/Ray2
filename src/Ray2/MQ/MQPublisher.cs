@@ -2,11 +2,14 @@
 using Orleans.Runtime;
 using Ray2.Configuration;
 using Ray2.EventSource;
+using Ray2.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace Ray2.MQ
 {
@@ -14,78 +17,73 @@ namespace Ray2.MQ
     {
         private readonly ILogger _logger;
         private readonly IServiceProvider _serviceProvider;
-        private ConcurrentDictionary<Type, EventPublishOptions> eventPublishOptions = new ConcurrentDictionary<Type, EventPublishOptions>();
+        private readonly IDataflowBufferBlockFactory _dataflowBufferBlockFactory;
 
-        public MQPublisher(IServiceProvider serviceProvider, ILogger<MQPublisher> logger)
+        public MQPublisher(IServiceProvider serviceProvider, IDataflowBufferBlockFactory dataflowBufferBlockFactory, ILogger<MQPublisher> logger)
         {
             this._serviceProvider = serviceProvider;
+            this._dataflowBufferBlockFactory = dataflowBufferBlockFactory;
             this._logger = logger;
         }
-        public async Task<bool> Publish(IEvent @event)
+
+        public Task<bool> PublishAsync(IEvent evt, string topic, string mqProviderName, MQPublishType publishType = MQPublishType.Asynchronous)
         {
-            var options = this.GetAttributeOptions(@event.GetType());
-            if (options == null)
-            {
-                throw new Exception($"No eventPublishAttribute is marked for {@event.GetType().FullName} events");
-            }
-            return await this.Publish(@event, options.Topic, options.MQProvider);
+            EventPublishBufferWrap wrap = new EventPublishBufferWrap(evt, topic, mqProviderName, publishType);
+            return this.PublishAsync(wrap);
         }
 
-        public async Task Publish(IList<IEvent> events)
+        public Task<bool> PublishAsync(EventPublishBufferWrap warp)
         {
-            if (events == null)
+            if (warp.Type == MQPublishType.NotPublish)
             {
-                return;
+                return Task.FromResult(false);
             }
-            foreach (var e in events)
+            else
             {
-                await this.Publish(e);
+                var bufferBlock = _dataflowBufferBlockFactory.Create<EventPublishBufferWrap>(warp.MQProviderName, this.LazyPublishAsync);
+                if (warp.Type == MQPublishType.Synchronous)
+                {
+                    return bufferBlock.SendAsync(warp);
+                }
+                else
+                {
+                    return bufferBlock.SendAsync(warp, false);
+                }
             }
         }
 
-        public Task<bool> Publish(IEvent @event, string topic, string mqProviderName)
+        public Task LazyPublishAsync(BufferBlock<EventPublishBufferWrap> eventBuffer)
         {
-            var provider = this._serviceProvider.GetRequiredServiceByName<IEventPublisher>(mqProviderName);
-            var model = new EventModel(@event);
-            return provider.Publish(topic, model);
-        }
-        public Task Publish(IList<IEvent> events, string topic, string mqProviderName)
-        {
-            var provider = this._serviceProvider.GetRequiredServiceByName<IEventPublisher>(mqProviderName);
-            List<EventModel> messages = new List<EventModel>();
-            foreach (var e in events)
+            List<EventPublishBufferWrap> eventWraps = new List<EventPublishBufferWrap>();
+            while (eventBuffer.TryReceive(out var model))
             {
-                var message = new EventModel(e) { };
-                messages.Add(message);
+                eventWraps.Add(model);
+                if (eventWraps.Count >= 1000)
+                    break;
             }
-            return provider.Publish(topic, messages);
+            if (eventWraps.Count == 0)
+                return Task.CompletedTask;
+            //this._logger.LogError("处理条数" + eventWraps.Count);
+            var provider = this._serviceProvider.GetRequiredServiceByName<IEventPublisher>(eventWraps[0].MQProviderName);
+            eventWraps.ForEach(warp => warp.Result = this.PublishAsync(provider, warp.Topic, new EventModel(warp.Value)));
+            Task.WaitAll(eventWraps.Select(f => f.Result).ToArray());
+            eventWraps.ForEach(warp => warp.TaskSource.SetResult(warp.Result.Result));
+            return Task.CompletedTask;
         }
 
-        public EventPublishOptions GetAttributeOptions(Type type)
+        private async Task<bool> PublishAsync(IEventPublisher publisher, string topic, EventModel model)
         {
-            return eventPublishOptions.GetOrAdd(type, (key) =>
-             {
-                 var attribute = type.GetCustomAttribute<EventPublishAttribute>();
-                 if (attribute != null)
-                 {
-                     string fullName = type.FullName;
-                     if (string.IsNullOrEmpty(attribute.Topic))
-                     {
-                         throw new ArgumentNullException($"EventPublishAttribute.Topic in {fullName} cannot be empty");
-                     }
-                     if (string.IsNullOrEmpty(attribute.MQProvider))
-                     {
-                         throw new ArgumentNullException($"EventPublishAttribute.MQProvider in {fullName} cannot be empty");
-                     }
-                     return new EventPublishOptions(attribute.Topic, attribute.MQProvider, fullName);
-                 }
-                 else
-                 {
-                     return null;
-                 }
-             });
-        }
+            try
+            {
+                return await publisher.Publish(topic, model);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogError(ex, $"Publishing {topic} event failed");
+                return false;
+            }
 
+        }
 
     }
 }

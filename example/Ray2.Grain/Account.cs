@@ -24,7 +24,7 @@ namespace Ray2.Grain
         {
             var evt = new AccountAddBalanceEvent(amount);
             evt.RelationEvent = uniqueId;
-            return this.ConcurrentWriteAsync(evt, true);
+            return this.ConcurrentWriteAsync(evt, MQ.MQPublishType.Asynchronous);
         }
 
         public Task<decimal> GetBalance()
