@@ -45,7 +45,7 @@ namespace Ray2.Host
                 {
                     build.AddRabbitMQ("rabbitmq", opt =>
                     {
-                        opt.HostName = "127.0.0.1";
+                        opt.HostName = "192.168.1.250";
                         opt.UserName = "admin";
                         opt.Password = "admin";
                     });

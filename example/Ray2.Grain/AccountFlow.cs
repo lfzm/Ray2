@@ -4,6 +4,7 @@ using Ray2.Grain.Events;
 using Ray2.Grain.States;
 using System.Threading.Tasks;
 
+
 namespace Ray2.Grain
 {
     [EventProcessor(typeof(Account), "rabbitmq",  "postgresql",OnceProcessCount =2000)]
