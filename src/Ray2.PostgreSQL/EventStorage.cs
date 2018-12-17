@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using Orleans.Runtime;
 using Ray2.EventSource;
+using Ray2.Internal;
 using Ray2.Storage;
 using System;
 using System.Collections.Concurrent;
@@ -38,13 +39,13 @@ namespace Ray2.PostgreSQL
             return stotage.GetListAsync(queryModel);
         }
 
-        public Task SaveAsync(List<EventStorageBufferWrap> wrapList)
+        public Task SaveAsync(List<IDataflowBufferWrap<EventStorageModel>> wrapList)
         {
-            Dictionary<string, List<EventStorageBufferWrap>> eventsList = wrapList.GroupBy(f => f.Value.StorageTableName).ToDictionary(x => x.Key, v => v.ToList());
+            Dictionary<string, List<IDataflowBufferWrap<EventStorageModel>>> eventsList = wrapList.GroupBy(f => f.Data.StorageTableName).ToDictionary(x => x.Key, v => v.ToList());
             foreach (var key in eventsList.Keys)
             {
                 var events = eventsList[key];
-                var stotage = this.GetStorage(key, events.First().Value.GetStateId());
+                var stotage = this.GetStorage(key, events.First().Data.StateId);
                 stotage.SaveAsync(events);
             }
             return Task.CompletedTask;

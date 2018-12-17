@@ -5,22 +5,23 @@ using System.Threading.Tasks.Dataflow;
 
 namespace Ray2.Internal
 {
-    public class DataflowBufferBlock<T> : IDataflowBufferBlock<T>
+    public class DataflowBufferBlock<TData> : IDataflowBufferBlock<TData>
     {
         private int isProcessing = 0;
-        private readonly BufferBlock<T> dataflowChannel = new BufferBlock<T>();
-        private readonly Func<BufferBlock<T>, Task> processor;
+        private readonly BufferBlock<IDataflowBufferWrap<TData>> dataflowChannel = new BufferBlock<IDataflowBufferWrap<TData>>();
+        private readonly Func<BufferBlock<IDataflowBufferWrap<TData>>, Task> processor;
 
         public int Count => dataflowChannel.Count;
 
-        public DataflowBufferBlock(Func<BufferBlock<T>, Task> processor)
+        public DataflowBufferBlock(Func<BufferBlock<IDataflowBufferWrap<TData>>, Task> processor)
         {
             this.processor = processor;
         }
-        public Task<bool> SendAsync(T wrap, bool isWallHandle)
+        public Task<bool> SendAsync(TData data, bool isWallHandle)
         {
             return Task.Run(async () =>
             {
+                var wrap = new DataflowBufferWrap<TData>(data);
                 //First use the synchronous method to quickly write to the BufferBlock, if the failure is using the asynchronous method
                 if (!dataflowChannel.Post(wrap))
                 {
@@ -34,19 +35,12 @@ namespace Ray2.Internal
                 if (!isWallHandle)
                     return true;
                 //Determine if you need to wait for processing
-                if (wrap is IDataflowBufferWrap wr)
-                {
-                    return await wr.TaskSource.Task;
-                }
-                else
-                {
-                    return true;
-                }
+                return await wrap.Wall();
             });
         }
-        public Task<bool> SendAsync(T wrap)
+        public Task<bool> SendAsync(TData data)
         {
-            return this.SendAsync(wrap, true);
+            return this.SendAsync(data, true);
         }
 
         public async void TriggerProcessor()

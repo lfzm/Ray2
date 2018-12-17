@@ -9,15 +9,15 @@ namespace Ray2.EventSource
             Event = @event;
             TypeCode = typeCode;
             Version = version;
+            StateId = @event.GetStateId();
         }
-        public EventModel(IEvent @event)
+        public EventModel(IEvent @event):this(@event, @event.TypeCode, @event.Version)
         {
-            Event = @event;
-            TypeCode = @event.TypeCode;
-            Version = @event.Version;
+           
         }
         public IEvent Event { get; }
         public string TypeCode { get; }
         public Int64 Version { get; }
+        public object StateId { get; }
     }
 }

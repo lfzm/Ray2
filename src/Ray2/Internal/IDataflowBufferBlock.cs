@@ -1,12 +1,11 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace Ray2.Internal
 {
-    public interface IDataflowBufferBlock<T> : IDataflowBufferBlock
+    public interface IDataflowBufferBlock<TData> : IDataflowBufferBlock
     {
-        Task<bool> SendAsync(T t);
-        Task<bool> SendAsync(T t,bool isWallHandle);
+        Task<bool> SendAsync(TData data);
+        Task<bool> SendAsync(TData data,bool isWallHandle);
     }
 
     public interface IDataflowBufferBlock

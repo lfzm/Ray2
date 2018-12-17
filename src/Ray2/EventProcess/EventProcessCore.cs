@@ -40,19 +40,19 @@ namespace Ray2.EventProcess
             //Wait for the number of buffers to be greater than twice the number of processing
             if (this._eventBufferBlock.Count > this.Options.OnceProcessCount * 2)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1));
+                await Task.Delay(TimeSpan.FromMinutes(1));
             }
-            return await this._eventBufferBlock.SendAsync(model);
+            return await this._eventBufferBlock.SendAsync(model,false);
         }
 
-        protected virtual async Task TriggerEventProcessing(BufferBlock<EventModel> eventBuffer)
+        protected virtual async Task TriggerEventProcessing(BufferBlock<IDataflowBufferWrap<EventModel>> eventBuffer)
         {
             try
             {
                 List<IEvent> events = new List<IEvent>();
                 while (eventBuffer.TryReceive(out var model))
                 {
-                    events.Add(model.Event);
+                    events.Add(model.Data.Event);
                     if (events.Count > this.Options.OnceProcessCount)
                         break;
                 }
@@ -110,9 +110,9 @@ namespace Ray2.EventProcess
 
         public override Task<bool> Tell(EventModel model)
         {
-            return this._eventBufferBlock.SendAsync(model);
+            return this._eventBufferBlock.SendAsync(model,false);
         }
-        protected override async Task TriggerEventProcessing(BufferBlock<EventModel> eventBuffer)
+        protected override async Task TriggerEventProcessing(BufferBlock<IDataflowBufferWrap<EventModel>> eventBuffer)
         {
             try
             {
@@ -121,9 +121,9 @@ namespace Ray2.EventProcess
                     List<IEvent> events = new List<IEvent>();
                     while (eventBuffer.TryReceive(out var model))
                     {
-                        if (model.Version < this.State.NextVersion())
+                        if (model.Data.Version < this.State.NextVersion())
                             continue;
-                        events.Add(model.Event);
+                        events.Add(model.Data.Event);
                         if (events.Count > this.Options.OnceProcessCount)
                             break;
 
@@ -136,7 +136,7 @@ namespace Ray2.EventProcess
                 {
                     while (eventBuffer.TryReceive(out var model))
                     {
-                        await this.TriggerEventProcess(model.Event);
+                        await this.TriggerEventProcess(model.Data.Event);
                     }
                 }
             }

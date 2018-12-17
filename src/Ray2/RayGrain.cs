@@ -23,7 +23,7 @@ namespace Ray2
         public TState State { get; private set; }
         protected abstract TStateKey StateId { get; }
         protected ILogger Logger { get; set; }
-        private IDataflowBufferBlock<EventTransactionBufferWrap<TStateKey>> _eventBufferBlock;
+        private IDataflowBufferBlock<EventTransactionModel<TStateKey>> _eventBufferBlock;
         private IEventSourcing<TState, TStateKey> _eventSourcing;
         private IInternalConfiguration _internalConfiguration;
         private IMQPublisher _mqPublisher;
@@ -42,7 +42,7 @@ namespace Ray2
         {
             try
             {
-                this._eventBufferBlock = new DataflowBufferBlock<EventTransactionBufferWrap<TStateKey>>(this.TriggerEventStorage);
+                this._eventBufferBlock = new DataflowBufferBlock<EventTransactionModel<TStateKey>>(this.TriggerEventStorage);
                 this._internalConfiguration = this.ServiceProvider.GetRequiredService<IInternalConfiguration>();
                 this._mqPublisher = this.ServiceProvider.GetRequiredService<IMQPublisher>();
                 this._eventSourcing = await this.ServiceProvider.GetEventSourcing<TState, TStateKey>(this).Init(this.StateId);
@@ -118,30 +118,30 @@ namespace Ray2
             if (@event == null)
                 throw new ArgumentNullException("ConcurrentWriteAsync event cannot be empty");
             this.IsBlockProcess();
-            var wrap = new EventTransactionBufferWrap<TStateKey>(@event, publishType);
-            return this._eventBufferBlock.SendAsync(wrap);
+            var model = new EventTransactionModel<TStateKey>(@event, publishType);
+            return this._eventBufferBlock.SendAsync(model);
         }
-        private Task TriggerEventStorage(BufferBlock<EventTransactionBufferWrap<TStateKey>> eventBuffer)
+        private Task TriggerEventStorage(BufferBlock<IDataflowBufferWrap<EventTransactionModel<TStateKey>>> eventBuffer)
         {
             var transaction = this.BeginTransaction();
-            List<EventTransactionBufferWrap<TStateKey>> events = new List<EventTransactionBufferWrap<TStateKey>>();
+            List<IDataflowBufferWrap<EventTransactionModel<TStateKey>>> events = new List<IDataflowBufferWrap<EventTransactionModel<TStateKey>>>();
             while (eventBuffer.TryReceive(out var model))
             {
                 events.Add(model);
-                transaction.WriteEventAsync(model.Value, model.Type);
+                transaction.WriteEventAsync(model.Data.Event, model.Data.PublishType);
                 if (transaction.Count() >= 1000)
                     break;
             }
             try
             {
                 transaction.Commit();
-                events.ForEach(evt => evt.TaskSource.SetResult(true));
+                events.ForEach(evt => evt.CompleteHandler(true));
             }
             catch (Exception ex)
             {
                 this.Logger.LogError(ex, "Concurrent write event exception");
                 transaction.Rollback();
-                events.ForEach(evt => evt.TaskSource.SetException(ex));
+                events.ForEach(evt => evt.ExceptionHandler(ex));
             }
             return Task.CompletedTask;
         }

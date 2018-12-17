@@ -12,9 +12,9 @@ namespace Ray2.MQ
         /// <summary>
         /// Publish a message to the message queue
         /// </summary>
-        /// <param name="warp">Send event to MQ package</param>
+        /// <param name="model">Send event to MQ publish model</param>
         /// <returns></returns>
-        Task<bool> PublishAsync(EventPublishBufferWrap warp);
+        Task<bool> PublishAsync(EventPublishModel model);
         /// <summary>
         ///  Publish a message to the message queue
         /// </summary>

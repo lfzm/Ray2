@@ -14,7 +14,7 @@ namespace Ray2.EventSource
     {
         private IStorageFactory _storageFactory;
         private TStateKey StateId;
-        private IDataflowBufferBlock<EventStorageBufferWrap> _eventBufferBlock;
+        private IDataflowBufferBlock<EventStorageModel> _eventBufferBlock;
         private IEventStorage _eventStorage;
         private IStateStorage _snapshotStorage;
         private string SnapshotTable;
@@ -30,7 +30,7 @@ namespace Ray2.EventSource
             this._eventStorage = await this._storageFactory.GetEventStorage(this.Options.EventSourceName, this.StateId.ToString());
 
             string bufferKey = "es" + this.Options.EventSourceName + this.Options.StorageOptions.StorageProvider;
-            this._eventBufferBlock = this._serviceProvider.GetRequiredService<IDataflowBufferBlockFactory>().Create<EventStorageBufferWrap>(bufferKey, this.LazySaveAsync);
+            this._eventBufferBlock = this._serviceProvider.GetRequiredService<IDataflowBufferBlockFactory>().Create<EventStorageModel>(bufferKey, this.LazySaveAsync);
 
             //Get snapshot storage information
             if (this.Options.SnapshotOptions.SnapshotType != SnapshotType.NoSnapshot)
@@ -45,9 +45,8 @@ namespace Ray2.EventSource
         {
             //Sharding processing
             string storageTableName = await this.GetEventTableName();
-            EventSingleStorageModel storageModel = new EventSingleStorageModel(@event.StateId, @event, this.Options.EventSourceName, storageTableName);
-            var bufferWrap = new EventStorageBufferWrap(storageModel);
-            return await this._eventBufferBlock.SendAsync(bufferWrap);
+            EventStorageModel storageModel = new EventStorageModel(@event.StateId, @event, this.Options.EventSourceName, storageTableName);
+            return await this._eventBufferBlock.SendAsync(storageModel);
         }
         public async Task<bool> SaveAsync(IList<IEvent<TStateKey>> events)
         {
@@ -57,17 +56,17 @@ namespace Ray2.EventSource
             EventCollectionStorageModel storageModel = new EventCollectionStorageModel(this.Options.EventSourceName, storageTableName);
             foreach (var e in events)
             {
-                EventStorageModel eventModel = new EventStorageModel(e.StateId, e);
+                EventModel eventModel = new EventModel(e);
                 storageModel.Events.Add(eventModel);
             }
             return await this._eventStorage.SaveAsync(storageModel);
         }
-        public async Task LazySaveAsync(BufferBlock<EventStorageBufferWrap> eventBuferr)
+        public async Task LazySaveAsync(BufferBlock<IDataflowBufferWrap<EventStorageModel>> eventBuferr)
         {
-            var bufferWrapList = new List<EventStorageBufferWrap>();
-            while (eventBuferr.TryReceive(out var evt))
+            var bufferWrapList = new List<IDataflowBufferWrap<EventStorageModel>>();
+            while (eventBuferr.TryReceive(out var wrap))
             {
-                bufferWrapList.Add(evt);
+                bufferWrapList.Add(wrap);
                 if (bufferWrapList.Count >= 500) break;//Process up to 500 items at a time
             }
             try
@@ -76,7 +75,7 @@ namespace Ray2.EventSource
             }
             catch (Exception ex)
             {
-                bufferWrapList.ForEach(f => f.TaskSource.SetException(ex));
+                bufferWrapList.ForEach(f => f.ExceptionHandler(ex));
             }
         }
         private async Task<string> GetEventTableName()

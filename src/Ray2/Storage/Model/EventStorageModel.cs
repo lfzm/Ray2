@@ -1,13 +1,16 @@
-﻿namespace Ray2.Storage
+﻿using Ray2.EventSource;
+
+namespace Ray2.Storage
 {
-    public class EventStorageModel
+    public class EventStorageModel : EventModel
     {
-        public EventStorageModel(object stateId, IEvent @event)
+        public EventStorageModel(object stateId, IEvent @event, string eventSourceName, string storageTableName) :base(@event)
         {
-            this.StateId = stateId;
-            this.Event = @event;
+            this.EventSourceName = eventSourceName;
+            this.StorageTableName = storageTableName;
         }
-        public IEvent Event { get; }
-        public object StateId { get; }
+        public string EventSourceName { get; }
+        public string StorageTableName { get; }
+        public bool Result { get; set; }
     }
 }

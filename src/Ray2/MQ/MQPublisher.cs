@@ -1,13 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using Orleans.Runtime;
-using Ray2.Configuration;
 using Ray2.EventSource;
 using Ray2.Internal;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -28,46 +25,48 @@ namespace Ray2.MQ
 
         public Task<bool> PublishAsync(IEvent evt, string topic, string mqProviderName, MQPublishType publishType = MQPublishType.Asynchronous)
         {
-            EventPublishBufferWrap wrap = new EventPublishBufferWrap(evt, topic, mqProviderName, publishType);
+            EventPublishModel wrap = new EventPublishModel(evt, topic, mqProviderName, publishType);
             return this.PublishAsync(wrap);
         }
 
-        public Task<bool> PublishAsync(EventPublishBufferWrap warp)
+        public Task<bool> PublishAsync(EventPublishModel model)
         {
-            if (warp.Type == MQPublishType.NotPublish)
+            if (model.Type == MQPublishType.NotPublish)
             {
                 return Task.FromResult(false);
             }
             else
             {
-                var bufferBlock = _dataflowBufferBlockFactory.Create<EventPublishBufferWrap>(warp.MQProviderName, this.LazyPublishAsync);
-                if (warp.Type == MQPublishType.Synchronous)
+                var bufferBlock = _dataflowBufferBlockFactory.Create<EventPublishModel>(model.MQProviderName, this.LazyPublishAsync);
+                if (model.Type == MQPublishType.Synchronous)
                 {
-                    return bufferBlock.SendAsync(warp);
+                    return bufferBlock.SendAsync(model);
                 }
                 else
                 {
-                    return bufferBlock.SendAsync(warp, false);
+                    return bufferBlock.SendAsync(model, false);
                 }
             }
         }
 
-        public Task LazyPublishAsync(BufferBlock<EventPublishBufferWrap> eventBuffer)
+        public Task LazyPublishAsync(BufferBlock<IDataflowBufferWrap<EventPublishModel>> eventBuffer)
         {
-            List<EventPublishBufferWrap> eventWraps = new List<EventPublishBufferWrap>();
-            while (eventBuffer.TryReceive(out var model))
+            List<IDataflowBufferWrap<EventPublishModel>> eventWraps = new List<IDataflowBufferWrap<EventPublishModel>>();
+            while (eventBuffer.TryReceive(out var wrap))
             {
-                eventWraps.Add(model);
+                eventWraps.Add(wrap);
                 if (eventWraps.Count >= 1000)
                     break;
             }
             if (eventWraps.Count == 0)
                 return Task.CompletedTask;
-            //this._logger.LogError("处理条数" + eventWraps.Count);
-            var provider = this._serviceProvider.GetRequiredServiceByName<IEventPublisher>(eventWraps[0].MQProviderName);
-            eventWraps.ForEach(warp => warp.Result = this.PublishAsync(provider, warp.Topic, new EventModel(warp.Value)));
-            Task.WaitAll(eventWraps.Select(f => f.Result).ToArray());
-            eventWraps.ForEach(warp => warp.TaskSource.SetResult(warp.Result.Result));
+            var provider = this._serviceProvider.GetRequiredServiceByName<IEventPublisher>(eventWraps[0].Data.MQProviderName);
+            var tasks = eventWraps.Select(warp =>
+            {
+                var result = this.PublishAsync(provider, warp.Data.Topic, new EventModel(warp.Data.Event));
+                return warp.CompleteHandler(result);
+            }).ToList();
+            Task.WaitAll(tasks.ToArray());
             return Task.CompletedTask;
         }
 

@@ -1,7 +1,6 @@
 ﻿using Ray2.EventSource;
-using System;
+using Ray2.Internal;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Ray2.Storage
@@ -10,7 +9,7 @@ namespace Ray2.Storage
     {
         Task<List<EventModel>> GetListAsync(string tableName,  EventQueryModel queryModel);
         Task<EventModel> GetAsync(string tableName, object stateId, long version);
-        Task SaveAsync(List<EventStorageBufferWrap> wrapList);
+        Task SaveAsync(List<IDataflowBufferWrap<EventStorageModel>> wrapList);
         Task<bool> SaveAsync(EventCollectionStorageModel eventList);
     }
 }

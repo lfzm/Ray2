@@ -32,7 +32,7 @@ namespace Ray2.PostgreSQL.Test
         {
             var e = TestEvent.Create(1);
             e.StateId = 1000;
-            EventSingleStorageModel model = new EventSingleStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
+            EventStorageModel model = new EventStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
 
             eventWrap = new EventStorageBufferWrap(model);
             List<EventStorageBufferWrap> eventWraps = new List<EventStorageBufferWrap>
@@ -56,7 +56,7 @@ namespace Ray2.PostgreSQL.Test
             {
                 var e = TestEvent.Create(1);
                 e.StateId = 1001 + i;
-                EventSingleStorageModel model = new EventSingleStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
+                EventStorageModel model = new EventStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
                 eventWraps.Add(new EventStorageBufferWrap(model));
             }
 
@@ -76,7 +76,7 @@ namespace Ray2.PostgreSQL.Test
                 if (i == 2)
                     e.Version = 1;
                 e.StateId = 2000;
-                EventSingleStorageModel model = new EventSingleStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
+                EventStorageModel model = new EventStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
                 eventWraps.Add(new EventStorageBufferWrap(model));
             }
 
@@ -98,7 +98,7 @@ namespace Ray2.PostgreSQL.Test
                     e.RelationEvent = "RelationEvent" + i;
 
                 e.StateId = 3000;
-                EventSingleStorageModel model = new EventSingleStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
+                EventStorageModel model = new EventStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
                 eventWraps.Add(new EventStorageBufferWrap(model));
             }
 
@@ -121,7 +121,7 @@ namespace Ray2.PostgreSQL.Test
                     e.RelationEvent = "Test";
                 else
                     e.RelationEvent = "ABC";
-                EventSingleStorageModel model = new EventSingleStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
+                EventStorageModel model = new EventStorageModel(e.StateId, e, this.EventSourceName, this.TableName);
                 eventWraps.Add(new EventStorageBufferWrap(model));
             }
 

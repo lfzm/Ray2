@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Internal\DataflowBufferBlockFactoryTests.cs" />
+    <Compile Remove="Internal\DataflowBufferBlockTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="Moq" Version="4.10.1" />
     <PackageReference Include="TestStack.BDDfy" Version="4.3.2" />
@@ -20,6 +25,7 @@
   <ItemGroup>
     <Folder Include="Configuration\" />
     <Folder Include="EventProcess\" />
+    <Folder Include="Internal\" />
   </ItemGroup>
 
   <ItemGroup>

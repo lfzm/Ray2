@@ -20,6 +20,7 @@ namespace Ray2.Client
         {
             try
             {
+                Console.ReadLine();
                 using (var client = await StartClientWithRetries())
                 {
                     while (true)

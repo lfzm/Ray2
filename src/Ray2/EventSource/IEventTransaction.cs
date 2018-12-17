@@ -18,10 +18,14 @@ namespace Ray2.EventSource
         /// <summary>
         /// Write events to a transaction
         /// </summary>
+        /// <param name="model">event</param>
+        void WriteEventAsync(EventTransactionModel<TStateKey> model);
+        /// <summary>
+        /// Write events to a transaction
+        /// </summary>
         /// <param name="event">event</param>
         /// <param name="publishType">Whether to publish to mq</param>
         void WriteEventAsync(IEvent<TStateKey> @event, MQPublishType publishType = MQPublishType.Asynchronous);
-
         /// <summary>
         /// Write events to a transaction
         /// </summary>

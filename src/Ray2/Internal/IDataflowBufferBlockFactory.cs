@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -7,8 +6,7 @@ namespace Ray2.Internal
 {
     public interface IDataflowBufferBlockFactory
     {
-
-        IDataflowBufferBlock<T> Create<T>(string name, Func<BufferBlock<T>, Task> processor)
-            where T : IDataflowBufferWrap;
+        IDataflowBufferBlock<TData> Create<TData>(string name, Func<BufferBlock<IDataflowBufferWrap<TData>>, Task> processor)
+            where TData : class;
     }
 }

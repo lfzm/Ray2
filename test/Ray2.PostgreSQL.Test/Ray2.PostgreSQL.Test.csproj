@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="EventStorageTests.cs" />
+    <Compile Remove="PostgreSqlEventStorageTests.cs" />
+    <Compile Remove="PostgreSqlStateStorageTests.cs" />
+    <Compile Remove="PostgreSqlTableStorageTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="Moq" Version="4.10.1" />
     <PackageReference Include="TestStack.BDDfy" Version="4.3.2" />

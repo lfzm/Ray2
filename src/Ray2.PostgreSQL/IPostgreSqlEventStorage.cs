@@ -1,4 +1,5 @@
 ﻿using Ray2.EventSource;
+using Ray2.Internal;
 using Ray2.Storage;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace Ray2.PostgreSQL
     {
         Task<List<EventModel>> GetListAsync( EventQueryModel queryModel);
         Task<EventModel> GetAsync(object stateId, long version);
-        Task SaveAsync(List<EventStorageBufferWrap> wrapList);
+        Task SaveAsync(List<IDataflowBufferWrap<EventStorageModel>> wrapList);
         Task<bool> SaveAsync(EventCollectionStorageModel eventList);
 
     }

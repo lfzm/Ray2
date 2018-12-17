@@ -118,16 +118,16 @@ namespace Ray2.PostgreSQL
                 return null;
             }
         }
-        public async Task SaveAsync(List<EventStorageBufferWrap> eventWraps)
+        public async Task SaveAsync(List<IDataflowBufferWrap<EventStorageModel>> eventWraps)
         {
             using (var db = PostgreSqlDbContext.Create(this.options))
             {
                 await db.OpenAsync();
                 try
                 {
-                    var eventList = eventWraps.Select(f => f.Value).ToList<EventStorageModel>();
+                    var eventList = eventWraps.Select(f => f.Data).ToList<EventModel>();
                     this.BinarySaveAsync(db, eventList);
-                    eventWraps.ForEach(wrap => wrap.TaskSource.TrySetResult(true));
+                    eventWraps.ForEach(wrap => wrap.CompleteHandler(true));
                     return;
                 }
                 catch
@@ -145,7 +145,7 @@ namespace Ray2.PostgreSQL
                 return true;
             }
         }
-        public void BinarySaveAsync(PostgreSqlDbContext db, List<EventStorageModel> events)
+        public void BinarySaveAsync(PostgreSqlDbContext db, List<EventModel> events)
         {
             using (var writer = db.BeginBinaryImport(this.insertBinarySql))
             {
@@ -165,18 +165,19 @@ namespace Ray2.PostgreSQL
             }
         }
 
-        public async Task SqlSaveAsync(PostgreSqlDbContext db, List<EventStorageBufferWrap> eventWraps)
+        public async Task SqlSaveAsync(PostgreSqlDbContext db, List<IDataflowBufferWrap<EventStorageModel>> eventWraps)
         {
             using (var trans = db.BeginTransaction())
             {
                 try
                 {
+
                     foreach (var wrap in eventWraps)
                     {
-                        EventSingleStorageModel model = wrap.Value;
+                        EventStorageModel model = wrap.Data;
                         var data = this.GetSerializer().Serialize(model.Event);
 
-                        wrap.Result = await db.ExecuteAsync(this.insertSql, new
+                        wrap.Data.Result = await db.ExecuteAsync(this.insertSql, new
                         {
                             StateId = model.StateId,
                             RelationEvent = model.Event.RelationEvent,
@@ -186,15 +187,14 @@ namespace Ray2.PostgreSQL
                             Version = model.Event.Version,
                             AddTime = model.Event.Timestamp
                         }) > 0;
-
                     }
                     trans.Commit();
-                    eventWraps.ForEach(wrap => wrap.TaskSource.TrySetResult(wrap.Result));
+                    eventWraps.ForEach(wrap => wrap.CompleteHandler(wrap.Data.Result));
                 }
                 catch (Exception ex)
                 {
                     trans.Rollback();
-                    eventWraps.ForEach(wrap => wrap.TaskSource.TrySetException(ex));
+                    eventWraps.ForEach(wrap => wrap.ExceptionHandler(ex));
                 }
             }
 
